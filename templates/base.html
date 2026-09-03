@@ -1,0 +1,85 @@
+{% load i18n static %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}" {% if LANGUAGE_BIDI %}dir="rtl"{% endif %}>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Ava{% endblock %} · {% trans "Gestion des stocks" %}</title>
+
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+
+{% if user.is_authenticated %}
+<div class="app-shell" x-data="{ sidebarOpen: false }">
+    <aside class="sidebar" :class="sidebarOpen ? 'sidebar--open' : ''">
+        <div class="sidebar__brand">
+            <span class="brand-mark">A</span>
+            <span class="brand-name">Ava</span>
+        </div>
+        <nav class="sidebar__nav">
+            <a href="{% url 'dashboard:home' %}" class="nav-link {% if request.resolver_match.app_name == 'dashboard' %}nav-link--active{% endif %}">
+                <span class="nav-icon">◧</span> {% trans "Tableau de bord" %}
+            </a>
+            <a href="{% url 'inventory:product_list' %}" class="nav-link {% if request.resolver_match.url_name == 'product_list' %}nav-link--active{% endif %}">
+                <span class="nav-icon">▣</span> {% trans "Produits" %}
+            </a>
+            <a href="{% url 'inventory:movement_list' %}" class="nav-link {% if request.resolver_match.url_name == 'movement_list' %}nav-link--active{% endif %}">
+                <span class="nav-icon">⇄</span> {% trans "Mouvements de stock" %}
+            </a>
+            <a href="{% url 'orders:order_list' %}" class="nav-link {% if request.resolver_match.url_name == 'order_list' %}nav-link--active{% endif %}">
+                <span class="nav-icon">▤</span> {% trans "Commandes" %}
+            </a>
+            <a href="{% url 'orders:requisition_list' %}" class="nav-link {% if request.resolver_match.url_name == 'requisition_list' %}nav-link--active{% endif %}">
+                <span class="nav-icon">✎</span> {% trans "Réquisitions" %}
+            </a>
+            <a href="/admin/" class="nav-link">
+                <span class="nav-icon">⚙</span> {% trans "Administration" %}
+            </a>
+        </nav>
+        <div class="sidebar__footer">
+            {% include "partials/language_switcher.html" %}
+            <form action="{% url 'accounts:logout' %}" method="post" class="logout-form">
+                {% csrf_token %}
+                <button type="submit" class="nav-link nav-link--danger">
+                    <span class="nav-icon">⏻</span> {% trans "Déconnexion" %}
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <div class="main-col">
+        <header class="topbar">
+            <button class="hamburger" @click="sidebarOpen = !sidebarOpen">☰</button>
+            <h1 class="topbar__title">{% block page_title %}{% trans "Tableau de bord" %}{% endblock %}</h1>
+            <div class="topbar__user">{{ user.get_username }}</div>
+        </header>
+
+        <div id="toast-region" class="toast-region"></div>
+
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="alert alert--{{ message.tags }}" x-data="{ show: true }" x-show="show"
+                         x-init="setTimeout(() => show = false, 4000)" x-transition>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <main class="content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</div>
+{% else %}
+    {% block auth_content %}{% endblock %}
+{% endif %}
+
+</body>
+</html>

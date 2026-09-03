@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Tableau de bord" %}{% endblock %}
+{% block page_title %}{% trans "Tableau de bord" %}{% endblock %}
+
+{% block content %}
+<div class="stat-grid">
+    <div class="stat-card stat-card--in" style="--delay:0ms">
+        <div class="stat-card__icon">▣</div>
+        <div class="stat-card__value">{{ nb_produits }}</div>
+        <div class="stat-card__label">{% trans "Produits référencés" %}</div>
+    </div>
+    <div class="stat-card stat-card--in" style="--delay:60ms">
+        <div class="stat-card__icon">⌂</div>
+        <div class="stat-card__value">{{ nb_entrepots }}</div>
+        <div class="stat-card__label">{% trans "Entrepôts" %}</div>
+    </div>
+    <div class="stat-card stat-card--in stat-card--warn" style="--delay:120ms">
+        <div class="stat-card__icon">⚠</div>
+        <div class="stat-card__value">{{ nb_produits_alerte }}</div>
+        <div class="stat-card__label">{% trans "Produits en rupture / seuil" %}</div>
+    </div>
+    <div class="stat-card stat-card--in" style="--delay:180ms">
+        <div class="stat-card__icon">▤</div>
+        <div class="stat-card__value">{{ nb_commandes_attente }}</div>
+        <div class="stat-card__label">{% trans "Commandes en attente" %}</div>
+    </div>
+    <div class="stat-card stat-card--in" style="--delay:240ms">
+        <div class="stat-card__icon">✎</div>
+        <div class="stat-card__value">{{ nb_requisitions_soumises }}</div>
+        <div class="stat-card__label">{% trans "Réquisitions à traiter" %}</div>
+    </div>
+</div>
+
+<div class="panel-grid">
+    <section class="panel">
+        <h2 class="panel__title">{% trans "Alertes de stock" %}</h2>
+        {% if produits_alerte %}
+        <ul class="simple-list">
+            {% for p in produits_alerte %}
+            <li class="simple-list__item">
+                <span>{{ p.nom }}</span>
+                <span class="badge badge--warn">{{ p.quantite_totale }} / {{ p.seuil_alerte }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="empty-state">{% trans "Aucune alerte pour le moment. 👍" %}</p>
+        {% endif %}
+    </section>
+
+    <section class="panel">
+        <h2 class="panel__title">{% trans "Derniers mouvements de stock" %}</h2>
+        {% if derniers_mouvements %}
+        <ul class="simple-list">
+            {% for m in derniers_mouvements %}
+            <li class="simple-list__item">
+                <span>{{ m.produit.nom }} · {{ m.entrepot.nom }}</span>
+                <span class="badge badge--{{ m.type_mouvement }}">{{ m.get_type_mouvement_display }} {{ m.quantite }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="empty-state">{% trans "Aucun mouvement enregistré." %}</p>
+        {% endif %}
+    </section>
+
+    <section class="panel">
+        <h2 class="panel__title">{% trans "Dernières commandes" %}</h2>
+        {% if dernieres_commandes %}
+        <ul class="simple-list">
+            {% for c in dernieres_commandes %}
+            <li class="simple-list__item">
+                <span>#{{ c.id }} · {{ c.client.nom }}</span>
+                <span class="badge badge--{{ c.statut }}">{{ c.get_statut_display }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="empty-state">{% trans "Aucune commande enregistrée." %}</p>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

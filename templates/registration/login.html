@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Connexion" %}{% endblock %}
+{% block auth_content %}
+<div class="auth-screen">
+    <div class="auth-card" x-data x-transition:enter="fade-in">
+        <div class="auth-card__brand">
+            <span class="brand-mark brand-mark--lg">A</span>
+            <h1>Ava</h1>
+            <p class="auth-subtitle">{% trans "Gestion des stocks & inventaires" %}</p>
+        </div>
+
+        {% if form.errors %}
+            <div class="alert alert--error">{% trans "Identifiants invalides. Veuillez réessayer." %}</div>
+        {% endif %}
+
+        <form method="post" class="auth-form">
+            {% csrf_token %}
+            <label class="field-label" for="{{ form.username.id_for_label }}">{% trans "Nom d'utilisateur" %}</label>
+            {{ form.username }}
+            <label class="field-label" for="{{ form.password.id_for_label }}">{% trans "Mot de passe" %}</label>
+            {{ form.password }}
+            <input type="hidden" name="next" value="{{ next }}">
+            <button type="submit" class="btn btn--primary btn--block">{% trans "Se connecter" %}</button>
+        </form>
+
+        <div class="auth-card__footer">
+            {% include "partials/language_switcher.html" %}
+        </div>
+    </div>
+</div>
+{% endblock %}

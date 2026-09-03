@@ -1,0 +1,37 @@
+{% load i18n %}
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>{% trans "Référence" %}</th>
+            <th>{% trans "Nom" %}</th>
+            <th>{% trans "Catégorie" %}</th>
+            <th>{% trans "Stock total" %}</th>
+            <th>{% trans "Prix" %}</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in produits %}
+        <tr class="data-row {% if p.en_alerte %}data-row--alert{% endif %}">
+            <td>{{ p.reference }}</td>
+            <td>{{ p.nom }}</td>
+            <td>{{ p.categorie.nom|default:"—" }}</td>
+            <td>
+                {{ p.quantite_totale }}
+                {% if p.en_alerte %}<span class="badge badge--warn">{% trans "seuil bas" %}</span>{% endif %}
+            </td>
+            <td>{{ p.prix_unitaire }} €</td>
+            <td class="data-row__actions">
+                <button class="icon-btn" title="{% trans 'Modifier' %}"
+                    hx-get="{% url 'inventory:product_edit' p.pk %}"
+                    hx-target="#modal-region" hx-swap="innerHTML">✎</button>
+                <button class="icon-btn icon-btn--danger" title="{% trans 'Supprimer' %}"
+                    hx-get="{% url 'inventory:product_delete' p.pk %}"
+                    hx-target="#modal-region" hx-swap="innerHTML">🗑</button>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="empty-state">{% trans "Aucun produit trouvé." %}</td></tr>
+        {% endfor %}
+    </tbody>
+</table>

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Commande" %} #{{ commande.id }}{% endblock %}
+{% block page_title %}{% trans "Commande" %} #{{ commande.id }}{% endblock %}
+{% block content %}
+<div class="panel">
+    <div class="detail-grid">
+        <div><span class="field-label">{% trans "Client" %}</span><p>{{ commande.client.nom }}</p></div>
+        <div><span class="field-label">{% trans "Entrepôt" %}</span><p>{{ commande.entrepot.nom|default:"—" }}</p></div>
+        <div><span class="field-label">{% trans "Statut" %}</span><p><span class="badge badge--{{ commande.statut }}">{{ commande.get_statut_display }}</span></p></div>
+        <div><span class="field-label">{% trans "Créée le" %}</span><p>{{ commande.cree_le|date:"d/m/Y H:i" }}</p></div>
+    </div>
+    {% if commande.notes %}
+    <p class="hint-text">{{ commande.notes }}</p>
+    {% endif %}
+</div>
+
+<div class="panel">
+    <h2 class="panel__title">{% trans "Articles" %}</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>{% trans "Produit" %}</th>
+                <th>{% trans "Quantité" %}</th>
+                <th>{% trans "Prix unitaire" %}</th>
+                <th>{% trans "Sous-total" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ligne in commande.lignes.all %}
+            <tr class="data-row">
+                <td>{{ ligne.produit.nom }}</td>
+                <td>{{ ligne.quantite }}</td>
+                <td>{{ ligne.prix_unitaire }} €</td>
+                <td>{{ ligne.sous_total }} €</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3" class="text-right"><strong>{% trans "Total" %}</strong></td>
+                <td><strong>{{ commande.montant_total }} €</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+    <a href="{% url 'orders:order_list' %}" class="btn btn--ghost">{% trans "Retour" %}</a>
+</div>
+{% endblock %}

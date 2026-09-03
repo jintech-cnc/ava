@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Produits" %}{% endblock %}
+{% block page_title %}{% trans "Produits" %}{% endblock %}
+
+{% block content %}
+<div class="toolbar" x-data>
+    <input
+        type="search" name="q" class="input input--search"
+        placeholder="{% trans 'Rechercher un produit...' %}"
+        value="{{ query }}"
+        hx-get="{% url 'inventory:product_list' %}"
+        hx-trigger="keyup changed delay:300ms, search"
+        hx-target="#product-table-region"
+        hx-include="[name='categorie']"
+    >
+    <select name="categorie" class="input"
+        hx-get="{% url 'inventory:product_list' %}"
+        hx-trigger="change"
+        hx-target="#product-table-region"
+        hx-include="[name='q']">
+        <option value="">{% trans "Toutes les catégories" %}</option>
+        {% for cat in categories %}
+        <option value="{{ cat.id }}" {% if categorie_id == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.nom }}</option>
+        {% endfor %}
+    </select>
+
+    <button class="btn btn--primary"
+        hx-get="{% url 'inventory:product_create' %}"
+        hx-target="#modal-region"
+        hx-swap="innerHTML">
+        + {% trans "Nouveau produit" %}
+    </button>
+    <button class="btn btn--ghost"
+        hx-get="{% url 'inventory:movement_create' %}"
+        hx-target="#modal-region"
+        hx-swap="innerHTML">
+        ⇄ {% trans "Mouvement de stock" %}
+    </button>
+</div>
+
+<div id="product-table-region"
+    hx-get="{% url 'inventory:product_list' %}"
+    hx-trigger="produitEnregistre from:body, mouvementEnregistre from:body"
+    hx-include="[name='q'],[name='categorie']">
+    {% include "inventory/_product_table.html" %}
+</div>
+
+<div id="modal-region"></div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Commandes" %}{% endblock %}
+{% block page_title %}{% trans "Commandes" %}{% endblock %}
+{% block content %}
+<div class="toolbar">
+    <a href="{% url 'orders:order_create' %}" class="btn btn--primary">+ {% trans "Nouvelle commande" %}</a>
+</div>
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>{% trans "Client" %}</th>
+            <th>{% trans "Entrepôt" %}</th>
+            <th>{% trans "Statut" %}</th>
+            <th>{% trans "Total" %}</th>
+            <th>{% trans "Date" %}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for c in commandes %}
+        <tr class="data-row">
+            <td><a href="{% url 'orders:order_detail' c.pk %}">#{{ c.id }}</a></td>
+            <td>{{ c.client.nom }}</td>
+            <td>{{ c.entrepot.nom|default:"—" }}</td>
+            <td><span class="badge badge--{{ c.statut }}">{{ c.get_statut_display }}</span></td>
+            <td>{{ c.montant_total }} €</td>
+            <td>{{ c.cree_le|date:"d/m/Y" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="empty-state">{% trans "Aucune commande." %}</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

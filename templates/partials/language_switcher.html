@@ -1,0 +1,20 @@
+{% load i18n %}
+<div class="lang-switcher" x-data="{ open: false }">
+    <button type="button" class="nav-link lang-switcher__toggle" @click="open = !open">
+        <span class="nav-icon">🌐</span> {% get_current_language as CURRENT_LANG %}
+        {% for code, name in LANGUAGES %}{% if code == CURRENT_LANG %}{{ name }}{% endif %}{% endfor %}
+    </button>
+    <div class="lang-switcher__menu" x-show="open" @click.outside="open = false" x-transition x-cloak>
+        {% get_available_languages as LANGUAGES %}
+        {% for code, name in LANGUAGES %}
+        <form action="{% url 'set_language' %}" method="post" class="lang-switcher__form">
+            {% csrf_token %}
+            <input name="next" type="hidden" value="{{ request.path }}">
+            <input name="language" type="hidden" value="{{ code }}">
+            <button type="submit" class="lang-switcher__item {% if code == CURRENT_LANG %}lang-switcher__item--active{% endif %}">
+                {{ name }}
+            </button>
+        </form>
+        {% endfor %}
+    </div>
+</div>

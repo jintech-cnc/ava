@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Nouvelle commande" %}{% endblock %}
+{% block page_title %}{% trans "Nouvelle commande" %}{% endblock %}
+
+{% block content %}
+<div class="panel panel--form">
+    <form method="post" class="form-grid">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="field {% if field.name == 'notes' %}field--full{% endif %}">
+            <label class="field-label">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}<span class="field-error">{{ field.errors|striptags }}</span>{% endif %}
+        </div>
+        {% endfor %}
+
+        <div class="field--full">
+            <h3 class="panel__subtitle">{% trans "Articles commandés" %}</h3>
+            {{ formset.management_form }}
+            <div>
+                <table class="data-table data-table--compact">
+                    <thead>
+                        <tr>
+                            <th>{% trans "Produit" %}</th>
+                            <th>{% trans "Quantité" %}</th>
+                            <th>{% trans "Prix unitaire" %}</th>
+                            <th>{% trans "Supprimer" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for line_form in formset %}
+                        <tr class="data-row">
+                            <td>{{ line_form.id }}{{ line_form.produit }}
+                                {% if line_form.produit.errors %}<span class="field-error">{{ line_form.produit.errors|striptags }}</span>{% endif %}
+                            </td>
+                            <td>{{ line_form.quantite }}</td>
+                            <td>{{ line_form.prix_unitaire }}</td>
+                            <td class="data-row__actions">
+                                {% if line_form.DELETE %}
+                                <label class="checkbox-inline">{{ line_form.DELETE }} {% trans "Retirer" %}</label>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="hint-text">{% trans "Astuce : videz le champ produit d'une ligne vide pour l'ignorer." %}</p>
+        </div>
+
+        <div class="field--full">
+            <button type="submit" class="btn btn--primary">{% trans "Enregistrer la commande" %}</button>
+            <a href="{% url 'orders:order_list' %}" class="btn btn--ghost">{% trans "Annuler" %}</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

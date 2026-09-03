@@ -1,0 +1,18 @@
+{% load i18n %}
+<div class="modal-overlay" x-data="{ open: true }" x-show="open" x-init="open = true" x-transition.opacity>
+    <div class="modal-panel modal-panel--sm" x-transition:enter="modal-in">
+        <div class="modal-panel__header">
+            <h2>{% trans "Confirmer la suppression" %}</h2>
+        </div>
+        <div class="modal-panel__body">
+            <p>{% blocktrans with nom=produit.nom %}Voulez-vous vraiment supprimer « {{ nom }} » ? Cette action est irréversible.{% endblocktrans %}</p>
+        </div>
+        <form hx-post="{% url 'inventory:product_delete' produit.pk %}" hx-target="#modal-region" hx-swap="innerHTML">
+            {% csrf_token %}
+            <div class="modal-panel__footer">
+                <button type="button" class="btn btn--ghost" @click="open = false; $el.closest('.modal-overlay').remove()">{% trans "Annuler" %}</button>
+                <button type="submit" class="btn btn--danger">{% trans "Supprimer" %}</button>
+            </div>
+        </form>
+    </div>
+</div>

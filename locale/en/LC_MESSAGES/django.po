@@ -1,0 +1,118 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Ava 1.0\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Gestion des stocks"
+msgstr "Stock management"
+
+msgid "Tableau de bord"
+msgstr "Dashboard"
+
+msgid "Produits"
+msgstr "Products"
+
+msgid "Mouvements de stock"
+msgstr "Stock movements"
+
+msgid "Commandes"
+msgstr "Orders"
+
+msgid "Réquisitions"
+msgstr "Requisitions"
+
+msgid "Administration"
+msgstr "Administration"
+
+msgid "Déconnexion"
+msgstr "Log out"
+
+msgid "Se connecter"
+msgstr "Sign in"
+
+msgid "Connexion"
+msgstr "Login"
+
+msgid "Nom d'utilisateur"
+msgstr "Username"
+
+msgid "Mot de passe"
+msgstr "Password"
+
+msgid "Gestion des stocks & inventaires"
+msgstr "Stock & inventory management"
+
+msgid "Identifiants invalides. Veuillez réessayer."
+msgstr "Invalid credentials. Please try again."
+
+msgid "Produits référencés"
+msgstr "Products listed"
+
+msgid "Entrepôts"
+msgstr "Warehouses"
+
+msgid "Produits en rupture / seuil"
+msgstr "Products low on stock"
+
+msgid "Commandes en attente"
+msgstr "Pending orders"
+
+msgid "Réquisitions à traiter"
+msgstr "Requisitions to process"
+
+msgid "Alertes de stock"
+msgstr "Stock alerts"
+
+msgid "Aucune alerte pour le moment. 👍"
+msgstr "No alerts right now. 👍"
+
+msgid "Derniers mouvements de stock"
+msgstr "Latest stock movements"
+
+msgid "Dernières commandes"
+msgstr "Latest orders"
+
+msgid "Nouveau produit"
+msgstr "New product"
+
+msgid "Modifier le produit"
+msgstr "Edit product"
+
+msgid "Nouveau mouvement de stock"
+msgstr "New stock movement"
+
+msgid "Enregistrer"
+msgstr "Save"
+
+msgid "Annuler"
+msgstr "Cancel"
+
+msgid "Supprimer"
+msgstr "Delete"
+
+msgid "Confirmer la suppression"
+msgstr "Confirm deletion"
+
+msgid "Nouvelle commande"
+msgstr "New order"
+
+msgid "Nouvelle réquisition"
+msgstr "New requisition"
+
+msgid "Client"
+msgstr "Customer"
+
+msgid "Statut"
+msgstr "Status"
+
+msgid "Total"
+msgstr "Total"
+
+msgid "Articles commandés"
+msgstr "Ordered items"
+
+msgid "Soumettre la réquisition"
+msgstr "Submit requisition"

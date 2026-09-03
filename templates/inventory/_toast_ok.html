@@ -1,0 +1,6 @@
+{% load i18n %}
+<div class="toast toast--success"
+     x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)"
+     x-transition:enter="toast-in" x-transition:leave="toast-out">
+    ✓ {{ message }}
+</div>

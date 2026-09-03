@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Produit" %}{% endblock %}
+{% block content %}
+<div class="panel panel--form">
+    <h2 class="panel__title">{% if produit %}{% trans "Modifier le produit" %}{% else %}{% trans "Nouveau produit" %}{% endif %}</h2>
+    <form method="post" class="form-grid">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="field {% if field.name == 'description' %}field--full{% endif %}">
+            <label class="field-label">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}<span class="field-error">{{ field.errors|striptags }}</span>{% endif %}
+        </div>
+        {% endfor %}
+        <div class="field--full">
+            <button type="submit" class="btn btn--primary">{% trans "Enregistrer" %}</button>
+            <a href="{% url 'inventory:product_list' %}" class="btn btn--ghost">{% trans "Annuler" %}</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

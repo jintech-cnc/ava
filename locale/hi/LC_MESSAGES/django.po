@@ -1,0 +1,118 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Ava 1.0\n"
+"Language: hi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Gestion des stocks"
+msgstr "स्टॉक प्रबंधन"
+
+msgid "Tableau de bord"
+msgstr "डैशबोर्ड"
+
+msgid "Produits"
+msgstr "उत्पाद"
+
+msgid "Mouvements de stock"
+msgstr "स्टॉक की गतिविधियाँ"
+
+msgid "Commandes"
+msgstr "ऑर्डर"
+
+msgid "Réquisitions"
+msgstr "आपूर्ति अनुरोध"
+
+msgid "Administration"
+msgstr "प्रशासन"
+
+msgid "Déconnexion"
+msgstr "लॉग आउट"
+
+msgid "Se connecter"
+msgstr "साइन इन करें"
+
+msgid "Connexion"
+msgstr "लॉगिन"
+
+msgid "Nom d'utilisateur"
+msgstr "उपयोगकर्ता नाम"
+
+msgid "Mot de passe"
+msgstr "पासवर्ड"
+
+msgid "Gestion des stocks & inventaires"
+msgstr "स्टॉक और इन्वेंटरी प्रबंधन"
+
+msgid "Identifiants invalides. Veuillez réessayer."
+msgstr "अमान्य जानकारी। कृपया पुनः प्रयास करें।"
+
+msgid "Produits référencés"
+msgstr "सूचीबद्ध उत्पाद"
+
+msgid "Entrepôts"
+msgstr "गोदाम"
+
+msgid "Produits en rupture / seuil"
+msgstr "कम स्टॉक वाले उत्पाद"
+
+msgid "Commandes en attente"
+msgstr "लंबित ऑर्डर"
+
+msgid "Réquisitions à traiter"
+msgstr "लंबित अनुरोध"
+
+msgid "Alertes de stock"
+msgstr "स्टॉक चेतावनी"
+
+msgid "Aucune alerte pour le moment. 👍"
+msgstr "फिलहाल कोई चेतावनी नहीं। 👍"
+
+msgid "Derniers mouvements de stock"
+msgstr "हाल की स्टॉक गतिविधियाँ"
+
+msgid "Dernières commandes"
+msgstr "हाल के ऑर्डर"
+
+msgid "Nouveau produit"
+msgstr "नया उत्पाद"
+
+msgid "Modifier le produit"
+msgstr "उत्पाद संपादित करें"
+
+msgid "Nouveau mouvement de stock"
+msgstr "नई स्टॉक गतिविधि"
+
+msgid "Enregistrer"
+msgstr "सहेजें"
+
+msgid "Annuler"
+msgstr "रद्द करें"
+
+msgid "Supprimer"
+msgstr "हटाएं"
+
+msgid "Confirmer la suppression"
+msgstr "हटाने की पुष्टि करें"
+
+msgid "Nouvelle commande"
+msgstr "नया ऑर्डर"
+
+msgid "Nouvelle réquisition"
+msgstr "नया अनुरोध"
+
+msgid "Client"
+msgstr "ग्राहक"
+
+msgid "Statut"
+msgstr "स्थिति"
+
+msgid "Total"
+msgstr "कुल"
+
+msgid "Articles commandés"
+msgstr "मंगाए गए सामान"
+
+msgid "Soumettre la réquisition"
+msgstr "अनुरोध सबमिट करें"

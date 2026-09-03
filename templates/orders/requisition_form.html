@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Nouvelle réquisition" %}{% endblock %}
+{% block page_title %}{% trans "Nouvelle réquisition" %}{% endblock %}
+
+{% block content %}
+<div class="panel panel--form">
+    <p class="hint-text">{% trans "Demandez du matériel ou des produits pour votre service. Un gestionnaire devra approuver la demande." %}</p>
+    <form method="post" class="form-grid">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="field {% if field.name == 'justification' %}field--full{% endif %}">
+            <label class="field-label">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}<span class="field-error">{{ field.errors|striptags }}</span>{% endif %}
+        </div>
+        {% endfor %}
+
+        <div class="field--full">
+            <h3 class="panel__subtitle">{% trans "Articles demandés" %}</h3>
+            {{ formset.management_form }}
+            <table class="data-table data-table--compact">
+                <thead>
+                    <tr>
+                        <th>{% trans "Produit" %}</th>
+                        <th>{% trans "Quantité" %}</th>
+                        <th>{% trans "Retirer" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for line_form in formset %}
+                    <tr class="data-row">
+                        <td>{{ line_form.id }}{{ line_form.produit }}
+                            {% if line_form.produit.errors %}<span class="field-error">{{ line_form.produit.errors|striptags }}</span>{% endif %}
+                        </td>
+                        <td>{{ line_form.quantite }}</td>
+                        <td class="data-row__actions">
+                            {% if line_form.DELETE %}
+                            <label class="checkbox-inline">{{ line_form.DELETE }}</label>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="field--full">
+            <button type="submit" class="btn btn--primary">{% trans "Soumettre la réquisition" %}</button>
+            <a href="{% url 'orders:requisition_list' %}" class="btn btn--ghost">{% trans "Annuler" %}</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
