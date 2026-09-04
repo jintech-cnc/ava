@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Administration" %}{% endblock %}
+{% block page_title %}{% trans "Administration" %}{% endblock %}
+{% block content %}
+<div class="admin-grid">
+    <div class="admin-card">
+        <div class="admin-card__icon">👥</div>
+        <div class="admin-card__info">
+            <h3>{% trans "Utilisateurs" %}</h3>
+            <p>{% trans "Gérer les comptes utilisateurs et les droits." %}</p>
+        </div>
+        <div class="admin-card__stats">
+            <span class="stat-value">{{ stats.total_users }}</span>
+            <span class="stat-label">{% trans "utilisateurs" %}</span>
+        </div>
+        <div class="admin-card__actions">
+            <a href="{% url 'accounts:user_list' %}" class="btn btn--primary">{% trans "Gérer" %}</a>
+            <a href="{% url 'accounts:user_create' %}" class="btn btn--ghost">{% trans "Ajouter" %}</a>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="admin-card__icon">🧑‍💼</div>
+        <div class="admin-card__info">
+            <h3>{% trans "Clients" %}</h3>
+            <p>{% trans "Gérer les clients et leurs informations." %}</p>
+        </div>
+        <div class="admin-card__stats">
+            <span class="stat-value">{{ stats.total_clients }}</span>
+            <span class="stat-label">{% trans "clients" %}</span>
+        </div>
+        <div class="admin-card__actions">
+            <a href="{% url 'accounts:client_list' %}" class="btn btn--primary">{% trans "Gérer" %}</a>
+            <a href="{% url 'accounts:client_create' %}" class="btn btn--ghost">{% trans "Ajouter" %}</a>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="admin-card__icon">📦</div>
+        <div class="admin-card__info">
+            <h3>{% trans "Entrepôts" %}</h3>
+            <p>{% trans "Gérer les entrepôts et leurs responsables." %}</p>
+        </div>
+        <div class="admin-card__stats">
+            <span class="stat-value">{{ stats.total_warehouses }}</span>
+            <span class="stat-label">{% trans "entrepôts" %}</span>
+        </div>
+        <div class="admin-card__actions">
+            <a href="{% url 'accounts:warehouse_list' %}" class="btn btn--primary">{% trans "Gérer" %}</a>
+            <a href="{% url 'accounts:warehouse_create' %}" class="btn btn--ghost">{% trans "Ajouter" %}</a>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="admin-card__icon">🧾</div>
+        <div class="admin-card__info">
+            <h3>{% trans "Commandes" %}</h3>
+            <p>{% trans "Voir toutes les commandes effectuées." %}</p>
+        </div>
+        <div class="admin-card__stats">
+            <span class="stat-value">{{ stats.total_orders }}</span>
+            <span class="stat-label">{% trans "commandes" %}</span>
+        </div>
+        <div class="admin-card__actions">
+            <a href="{% url 'orders:order_list' %}" class="btn btn--primary">{% trans "Voir" %}</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

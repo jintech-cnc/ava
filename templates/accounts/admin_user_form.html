@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Utilisateur" %}{% endblock %}
+{% block page_title %}{% if user_obj %}{% trans "Modifier l'utilisateur" %}{% else %}{% trans "Nouvel utilisateur" %}{% endif %}{% endblock %}
+{% block content %}
+<div class="panel panel--form">
+    <div class="toolbar" style="margin-bottom: 20px;">
+        <a href="{% url 'accounts:user_list' %}" class="btn btn--ghost">← {% trans "Retour à la liste" %}</a>
+    </div>
+
+    <form method="post" class="form-grid">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="field--full alert alert--error">
+            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+        </div>
+        {% endif %}
+        {% for field in form %}
+        <div class="field {% if field.name == 'description' %}field--full{% endif %}">
+            <label class="field-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+                {% for error in field.errors %}
+                    <span class="field-error">{{ error|striptags }}</span>
+                {% endfor %}
+            {% endif %}
+        </div>
+        {% endfor %}
+        
+        {% if user_obj %}
+        <div class="field field--full">
+            <label class="field-label">{% trans "Modifier le mot de passe" %}</label>
+            <p class="hint-text">{% trans "Laissez vide pour ne pas changer le mot de passe." %}</p>
+            <input type="password" name="password1" class="input" placeholder="{% trans 'Nouveau mot de passe' %}">
+            <input type="password" name="password2" class="input" placeholder="{% trans 'Confirmer le mot de passe' %}">
+        </div>
+        {% endif %}
+
+        <div class="field--full">
+            <button type="submit" class="btn btn--primary">{% trans "Enregistrer" %}</button>
+            <a href="{% url 'accounts:user_list' %}" class="btn btn--ghost">{% trans "Annuler" %}</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

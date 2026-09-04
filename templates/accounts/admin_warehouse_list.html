@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Entrepôts" %}{% endblock %}
+{% block page_title %}{% trans "Gestion des entrepôts" %}{% endblock %}
+{% block content %}
+<div class="panel">
+    <div class="toolbar">
+        <a href="{% url 'accounts:admin_dashboard' %}" class="btn btn--ghost">← {% trans "Retour" %}</a>
+        <a href="{% url 'accounts:warehouse_create' %}" class="btn btn--primary">+ {% trans "Ajouter un entrepôt" %}</a>
+    </div>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>{% trans "Nom" %}</th>
+                <th>{% trans "Emplacement" %}</th>
+                <th>{% trans "Responsable" %}</th>
+                <th>{% trans "Actions" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for w in warehouses %}
+            <tr class="data-row">
+                <td><strong>{{ w.nom }}</strong></td>
+                <td>{{ w.emplacement|default:"-" }}</td>
+                <td>{{ w.responsable.get_full_name|default:"-"|default:w.responsable.username|default:"-" }}</td>
+                <td class="data-row__actions">
+                    <a href="{% url 'accounts:warehouse_edit' w.pk %}" class="icon-btn">✎</a>
+                    <a href="{% url 'accounts:warehouse_delete' w.pk %}" class="icon-btn icon-btn--danger">🗑</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="empty-state">{% trans "Aucun entrepôt." %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

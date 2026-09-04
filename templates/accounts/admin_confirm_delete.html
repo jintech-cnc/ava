@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Confirmer la suppression" %}{% endblock %}
+{% block page_title %}{% trans "Confirmer la suppression" %}{% endblock %}
+{% block content %}
+<div class="panel panel--form" style="max-width: 500px;">
+    <h2 class="panel__title">⚠ {% trans "Confirmer la suppression" %}</h2>
+    <p>{% blocktrans %}Êtes-vous sûr de vouloir supprimer le {{ object_type }} <strong>{{ object }}</strong> ? Cette action est irréversible.{% endblocktrans %}</p>
+    
+    <form method="post" style="margin-top: 20px;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn--danger">{% trans "Oui, supprimer" %}</button>
+        <a href="javascript:history.back()" class="btn btn--ghost">{% trans "Annuler" %}</a>
+    </form>
+</div>
+{% endblock %}
