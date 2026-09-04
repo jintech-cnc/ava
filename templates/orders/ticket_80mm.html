@@ -1,0 +1,246 @@
+{% load i18n %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+<meta charset="UTF-8">
+<title>{% trans "Facture" %} #{{ commande.pk }}</title>
+<style>
+/* === Format ticket 80mm (POS thermique) === */
+@page {
+    size: 80mm auto;
+    margin: 0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+    font-family: 'Courier New', 'Consolas', monospace;
+    width: 80mm;
+    font-size: 11px;
+    line-height: 1.35;
+    color: #000;
+    background: white;
+}
+.ticket {
+    width: 80mm;
+    padding: 4mm 4mm 6mm;
+}
+.ticket__center { text-align: center; }
+.ticket__right { text-align: right; }
+.ticket__small { font-size: 9px; }
+.ticket__xsmall { font-size: 8px; }
+.ticket__bold { font-weight: 700; }
+.ticket__h1 { font-size: 14px; font-weight: 700; margin: 2px 0; }
+.ticket__h2 { font-size: 12px; font-weight: 700; margin: 2px 0; }
+.ticket__divider {
+    border: none;
+    border-top: 1px dashed #000;
+    margin: 4px 0;
+}
+.ticket__divider-double {
+    border: none;
+    border-top: 2px solid #000;
+    border-bottom: 1px solid #000;
+    height: 4px;
+    margin: 4px 0;
+}
+.ticket__row {
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+    font-size: 10.5px;
+    margin: 1px 0;
+}
+.ticket__item {
+    margin: 4px 0;
+    page-break-inside: avoid;
+}
+.ticket__item-name { font-weight: 700; }
+.ticket__item-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #000;
+    padding-left: 4px;
+}
+.ticket__totals { margin-top: 6px; }
+.ticket__totals .ticket__row { font-size: 12px; }
+.ticket__total-final {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+    font-size: 16px;
+    margin: 4px 0;
+    padding: 3px 0;
+    border-top: 1px dashed #000;
+    border-bottom: 1px dashed #000;
+}
+.ticket__footer {
+    margin-top: 8px;
+    text-align: center;
+    font-size: 9px;
+    line-height: 1.4;
+}
+.ticket__barcode {
+    text-align: center;
+    font-family: 'Libre Barcode 39', 'Courier New', monospace;
+    font-size: 32px;
+    letter-spacing: 1px;
+    margin: 6px 0;
+}
+
+/* Logo */
+.ticket__logo {
+    max-width: 30mm;
+    max-height: 18mm;
+    margin: 0 auto 4px;
+    display: block;
+    object-fit: contain;
+}
+.ticket__logo-placeholder {
+    display: inline-block;
+    width: 20mm;
+    height: 20mm;
+    line-height: 20mm;
+    text-align: center;
+    font-size: 22px;
+    font-weight: 700;
+    background: #000;
+    color: white;
+    border-radius: 50%;
+    margin: 0 auto 4px;
+}
+
+/* Bouton d'impression (caché à l'impression) */
+.ticket__actions {
+    position: fixed;
+    top: 0;
+    right: 0;
+    padding: 8px;
+    background: #4f5eff;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    border-radius: 0 0 0 4px;
+    z-index: 1000;
+}
+.ticket__actions:hover { background: #3741d4; }
+@media print {
+    .ticket__actions { display: none; }
+    body { margin: 0; }
+}
+</style>
+</head>
+<body>
+
+<button class="ticket__actions" onclick="window.print()">🖨 {% trans "Imprimer" %}</button>
+
+<div class="ticket">
+    {# === En-tête entreprise === #}
+    {% if company %}
+    <div class="ticket__center">
+        {% if company.logo %}
+            <img src="{{ company.logo.url }}" alt="" class="ticket__logo">
+        {% else %}
+            <div class="ticket__logo-placeholder">{{ company.nom|slice:":1"|upper }}</div>
+        {% endif %}
+        <div class="ticket__h1">{{ company.nom|upper }}</div>
+        {% if company.slogan %}<div class="ticket__small">{{ company.slogan }}</div>{% endif %}
+        {% if company.adresse %}<div class="ticket__small">{{ company.adresse }}</div>{% endif %}
+        {% if company.telephone %}<div class="ticket__small">{% trans "Tél" %}: {{ company.telephone }}</div>{% endif %}
+        {% if company.email %}<div class="ticket__small">{{ company.email }}</div>{% endif %}
+        {% if company.rccm %}
+        <div class="ticket__xsmall">RCCM: {{ company.rccm }}</div>
+        {% endif %}
+        {% if company.id_national %}
+        <div class="ticket__xsmall">ID Nat: {{ company.id_national }}</div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <hr class="ticket__divider-double">
+
+    {# === Type de document === #}
+    <div class="ticket__center">
+        <div class="ticket__h1">{% trans "FACTURE" %}</div>
+        <div class="ticket__small ticket__bold">N° {{ commande.numero|default:commande.pk }}</div>
+        <div class="ticket__small">{{ commande.cree_le|date:"d/m/Y H:i" }}</div>
+    </div>
+
+    <hr class="ticket__divider">
+
+    {# === Client + entrepôt === #}
+    <div class="ticket__small">
+        <div class="ticket__bold">{% trans "Client" %}:</div>
+        <div>{{ commande.client.nom }}</div>
+        {% if commande.client.telephone %}<div>{% trans "Tél" %}: {{ commande.client.telephone }}</div>{% endif %}
+        {% if commande.entrepot %}
+        <div class="ticket__bold" style="margin-top: 2px;">{% trans "Entrepôt" %}: {{ commande.entrepot.nom }}</div>
+        {% endif %}
+        {% if commande.cree_par %}
+        <div class="ticket__bold">{% trans "Caissier" %}: {{ commande.cree_par.get_full_name|default:commande.cree_par.username }}</div>
+        {% endif %}
+    </div>
+
+    <hr class="ticket__divider">
+
+    {# === Lignes de facture === #}
+    {% for ligne in commande.lignes.all %}
+    <div class="ticket__item">
+        <div class="ticket__item-name">{{ ligne.produit.nom }}</div>
+        <div class="ticket__item-meta">
+            <span>{{ ligne.quantite }} × {{ ligne.prix_unitaire }} {{ company.devise|default:"FC" }}</span>
+            <span class="ticket__bold">{{ ligne.sous_total }} {{ company.devise|default:"FC" }}</span>
+        </div>
+    </div>
+    {% endfor %}
+
+    <hr class="ticket__divider">
+
+    {# === Totaux === #}
+    <div class="ticket__totals">
+        <div class="ticket__row">
+            <span>{% trans "Sous-total" %}</span>
+            <span>{{ commande.montant_total }} {{ company.devise|default:"FC" }}</span>
+        </div>
+        <div class="ticket__row ticket__small">
+            <span>{% trans "Articles" %}</span>
+            <span>{{ commande.lignes.count }}</span>
+        </div>
+    </div>
+
+    <div class="ticket__total-final">
+        <span>{% trans "TOTAL" %}</span>
+        <span>{{ commande.montant_total }} {{ company.devise|default:"FC" }}</span>
+    </div>
+
+    <hr class="ticket__divider-double">
+
+    {# === Code-barres de suivi === #}
+    <div class="ticket__barcode">*{{ commande.numero|default:commande.pk|stringformat:"06d" }}*</div>
+
+    {# === Pied de page === #}
+    <div class="ticket__footer">
+        {% if company.mentions_footer %}
+            <div>{{ company.mentions_footer }}</div>
+            <hr class="ticket__divider">
+        {% endif %}
+        <div class="ticket__bold">{% trans "Merci de votre visite !" %}</div>
+        <div class="ticket__xsmall">{% trans "Conservez ce ticket — il vous sert de garantie" %}</div>
+        <div class="ticket__xsmall" style="margin-top: 4px;">—</div>
+        <div class="ticket__xsmall">{{ company.nom|default:"Ava" }} · {% now "d/m/Y H:i" %}</div>
+    </div>
+</div>
+
+<script>
+// Auto-print dès que la fenêtre s'ouvre (POS context)
+if (window.opener || /receipt/.test(window.name)) {
+    setTimeout(() => { try { window.print(); } catch(e) {} }, 400);
+}
+// Ferme la fenêtre après impression (optionnel)
+window.addEventListener('afterprint', () => {
+    // Décommentez pour fermer automatiquement après impression :
+    // setTimeout(() => window.close(), 1500);
+});
+</script>
+
+</body>
+</html>

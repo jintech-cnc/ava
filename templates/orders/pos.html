@@ -4,52 +4,159 @@
 {% block page_title %}{% trans "Point de Vente (POS)" %}{% endblock %}
 {% block content %}
 <div class="pos-app" x-data="posData()" x-init="init()">
-    <div class="pos-grid">
-        <div class="pos-products">
-            <div class="toolbar">
-                <input type="text" class="input input--search" placeholder='{% trans "Rechercher un produit..." %}' 
-                       x-model="searchQuery" x-ref="searchInput" 
-                       @keydown="if($event.key === 'Enter') $event.preventDefault()">
-            </div>
-            
-            <div class="category-tabs" x-show="categories.length > 0">
-                <button class="category-tab" :class="!selectedCategory ? 'category-tab--active' : ''" 
-                        @click="selectedCategory = null">{% trans "Toutes" %}</button>
-                <template x-for="cat in categories" :key="cat.id">
-                    <button class="category-tab" 
-                            :class="selectedCategory === cat.id ? 'category-tab--active' : ''"
-                            @click="selectedCategory = cat.id">
-                        <img x-show="cat.image" :src="cat.image" class="category-tab__img" alt="">
-                        <span x-text="cat.nom"></span>
-                    </button>
-                </template>
-            </div>
-            
-            <div class="pos-products__grid" id="product-grid">
-                <template x-for="p in filteredProducts" :key="p.id">
-                    <div class="product-card" :class="p.quantite_totale <= 0 ? 'product-card--out' : ''" 
-                         @click="addToCart(p)">
-                        <div class="product-card__info">
-                            <strong x-text="p.nom"></strong>
-                            <span class="product-card__price" x-text="formatPrice(p.prix_unitaire)"></span>
-                            <span class="product-card__stock" x-text="'Stock: ' + p.quantite_totale"></span>
-                        </div>
-                    </div>
-                </template>
+    {# ── En-tête entreprise ── #}
+    {% if company %}
+    <div class="pos-company-bar">
+        <div class="pos-company-bar__left">
+            {% if company.logo %}
+                <img src="{{ company.logo.url }}" alt="{{ company.nom }}" class="pos-company-bar__logo">
+            {% else %}
+                <span class="pos-company-bar__logo pos-company-bar__logo--placeholder">{{ company.nom|slice:":1"|upper }}</span>
+            {% endif %}
+            <div>
+                <strong class="pos-company-bar__name">{{ company.nom }}</strong>
+                {% if company.telephone %}<span class="pos-company-bar__contact"> · {{ company.telephone }}</span>{% endif %}
             </div>
         </div>
-        
+        <div class="pos-company-bar__right">
+            <span class="pos-clock" x-text="now"></span>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="pos-grid">
+        {# ── Colonne de saisie rapide ── #}
+        <div class="pos-entry">
+            <div class="pos-entry__main">
+                <h2 class="pos-entry__title">{% trans "Saisie rapide" %}</h2>
+
+                <div class="autocomplete" :class="{ 'autocomplete--open': suggestions.length > 0 && searchFocused }">
+                    <label class="pos-entry__label">{% trans "Produit" %}</label>
+                    <input
+                        type="text"
+                        class="input input--xl pos-entry__search"
+                        :value="searchQuery"
+                        @input="onSearchInput($event)"
+                        @focus="searchFocused = true"
+                        @blur="setTimeout(() => searchFocused = false, 200)"
+                        @keydown.escape="clearSearch()"
+                        @keydown.enter.prevent="if(suggestions[selectedSuggestion]) { selectProduct(suggestions[selectedSuggestion]); $nextTick(() => $refs.qtyInput.focus()); }"
+                        @keydown.arrow-down.prevent="moveSuggestion(1)"
+                        @keydown.arrow-up.prevent="moveSuggestion(-1)"
+                        placeholder='{% trans "Tapez le nom du produit..." %}'
+                        x-ref="productInput"
+                        autocomplete="off">
+
+                    <div class="autocomplete__dropdown" x-show="suggestions.length > 0 && searchFocused" x-transition>
+                        <template x-for="(s, idx) in suggestions" :key="s.id">
+                            <div class="autocomplete__item"
+                                 :class="idx === selectedSuggestion ? 'autocomplete__item--active' : ''"
+                                 @mousedown.prevent="selectProduct(s); $nextTick(() => $refs.qtyInput.focus());">
+                                <div class="autocomplete__item-main">
+                                    <strong x-text="s.nom"></strong>
+                                    <span class="autocomplete__item-ref" x-text="s.reference"></span>
+                                </div>
+                                <div class="autocomplete__item-meta">
+                                    <span class="autocomplete__item-price" x-text="formatPrice(s.prix_unitaire)"></span>
+                                    <span class="autocomplete__item-stock" :class="s.quantite_totale <= 0 ? 'autocomplete__item-stock--out' : (s.quantite_totale <= s.seuil_alerte ? 'autocomplete__item-stock--low' : '')">
+                                        {% trans "Stock" %}: <span x-text="s.quantite_totale"></span>
+                                    </span>
+                                </div>
+                            </div>
+                        </template>
+                        <div class="autocomplete__empty" x-show="suggestions.length === 0 && searchQuery.length >= 2">
+                            {% trans "Aucun produit trouvé" %}
+                        </div>
+                    </div>
+                </div>
+
+                {# Affichage produit sélectionné + saisie quantité #}
+                <div class="pos-selected" x-show="selectedProduct" x-transition>
+                    <div class="pos-selected__header">
+                        <div>
+                            <span class="pos-selected__ref" x-text="selectedProduct?.reference"></span>
+                            <strong class="pos-selected__name" x-text="selectedProduct?.nom"></strong>
+                        </div>
+                        <button class="icon-btn" @click="clearSelected()" title="{% trans 'Effacer' %}">✕</button>
+                    </div>
+                    <div class="pos-selected__form">
+                        <div class="pos-selected__qty">
+                            <label>{% trans "Quantité" %}</label>
+                            <div class="qty-input">
+                                <button type="button" class="qty-input__btn" @click="adjustQty(-1)">−</button>
+                                <input type="number" class="qty-input__field"
+                                       x-ref="qtyInput"
+                                       x-model.number="pendingQty"
+                                       @keydown.enter.prevent="addSelectedToCart()"
+                                       @input="onQtyInput"
+                                       min="1" step="1">
+                                <button type="button" class="qty-input__btn" @click="adjustQty(1)">+</button>
+                            </div>
+                            <span class="pos-selected__unit" x-text="selectedProduct?.unite"></span>
+                        </div>
+                        <div class="pos-selected__price">
+                            <label>{% trans "Prix unitaire" %}</label>
+                            <div class="pos-selected__price-display">
+                                <strong x-text="formatPrice(pendingPrice)"></strong>
+                                <small class="pos-selected__hint">{% trans "auto depuis le produit" %}</small>
+                            </div>
+                        </div>
+                        <div class="pos-selected__subtotal">
+                            <label>{% trans "Sous-total" %}</label>
+                            <div class="pos-selected__subtotal-display">
+                                <strong x-text="formatPrice(pendingQty * pendingPrice)"></strong>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn--primary btn--block btn--xl"
+                            @click="addSelectedToCart()"
+                            :disabled="!selectedProduct || pendingQty < 1">
+                        ↵ {% trans "Ajouter à la facture" %} <kbd>Enter</kbd>
+                    </button>
+                </div>
+
+                {# Mode legacy : grille cliquable #}
+                <details class="pos-grid-toggle">
+                    <summary>{% trans "Ou choisir dans la grille →" %}</summary>
+                    <div class="category-tabs" x-show="categories.length > 0">
+                        <button class="category-tab" :class="!selectedCategory ? 'category-tab--active' : ''" @click="selectedCategory = null">{% trans "Toutes" %}</button>
+                        <template x-for="cat in categories" :key="cat.id">
+                            <button class="category-tab" :class="selectedCategory === cat.id ? 'category-tab--active' : ''" @click="selectedCategory = cat.id">
+                                <img x-show="cat.image" :src="cat.image" class="category-tab__img" alt="">
+                                <span x-text="cat.nom"></span>
+                            </button>
+                        </template>
+                    </div>
+                    <div class="pos-products__grid">
+                        <template x-for="p in filteredProducts.slice(0, 30)" :key="'g-' + p.id">
+                            <div class="product-card" :class="p.quantite_totale <= 0 ? 'product-card--out' : ''" @click="quickAddFromGrid(p)">
+                                <div class="product-card__info">
+                                    <strong x-text="p.nom"></strong>
+                                    <span class="product-card__price" x-text="formatPrice(p.prix_unitaire)"></span>
+                                    <span class="product-card__stock" x-text="'Stock: ' + p.quantite_totale"></span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </details>
+            </div>
+        </div>
+
+        {# ── Facture en cours ── #}
         <div class="pos-cart">
             <div class="pos-cart__header">
-                <h3>{% trans "Panier" %}</h3>
-                <span class="badge" x-text="cart.length + ' articles'"></span>
+                <div>
+                    <h3>{% trans "Facture en cours" %}</h3>
+                    <span class="pos-cart__num" x-text="invoiceNumber"></span>
+                </div>
+                <span class="badge" x-text="cart.length + ' article(s)'"></span>
             </div>
-            
+
             <div class="pos-cart__form">
                 <div class="field">
-                    <label>{% trans "Client" %}</label>
+                    <label>{% trans "Client" %} *</label>
                     <select class="input" x-model="selectedClient">
-                        <option value="">{% trans "Sélectionner un client" %}</option>
+                        <option value="">{% trans "— Choisir client —" %}</option>
                         {% for client in clients %}
                         <option value="{{ client.pk }}">{{ client.nom }}</option>
                         {% endfor %}
@@ -64,13 +171,14 @@
                     </select>
                 </div>
             </div>
-            
+
             <div class="pos-cart__items">
-                <template x-for="(item, idx) in cart" :key="item.id">
+                <template x-for="(item, idx) in cart" :key="item.cartId">
                     <div class="cart-item">
                         <div class="cart-item__info">
                             <strong x-text="item.nom"></strong>
-                            <span class="cart-item__price" x-text="formatPrice(item.prix_unitaire)"></span>
+                            <span class="cart-item__ref" x-text="item.reference"></span>
+                            <span class="cart-item__price" x-text="formatPrice(item.prix_unitaire) + ' × ' + item.quantity"></span>
                         </div>
                         <div class="cart-item__qty">
                             <button class="icon-btn" @click="updateQuantity(idx, -1)">−</button>
@@ -78,34 +186,305 @@
                             <button class="icon-btn" @click="updateQuantity(idx, 1)">+</button>
                         </div>
                         <span class="cart-item__total" x-text="formatPrice(item.quantity * item.prix_unitaire)"></span>
-                        <button class="icon-btn icon-btn--danger" @click="removeFromCart(idx)">🗑</button>
+                        <button class="icon-btn icon-btn--danger" @click="removeFromCart(idx)" title="{% trans 'Retirer' %}">×</button>
                     </div>
                 </template>
                 <template x-if="cart.length === 0">
-                    <div class="empty-state">{% trans "Le panier est vide" %}</div>
+                    <div class="empty-state">
+                        <div class="empty-state__icon">🛒</div>
+                        <p>{% trans "La facture est vide. Tapez un nom de produit ci-dessus pour commencer." %}</p>
+                    </div>
                 </template>
             </div>
-            
+
             <div class="pos-cart__totals">
                 <div class="pos-cart__row">
-                    <span>{% trans "Sous-total" %}</span>
+                    <span>{% trans "Sous-total HT" %}</span>
                     <span x-text="formatPrice(subtotal)"></span>
                 </div>
                 <div class="pos-cart__row pos-cart__row--total">
-                    <strong>{% trans "Total" %}</strong>
-                    <strong x-text="formatPrice(total)"></strong>
+                    <strong>{% trans "TOTAL TTC" %}</strong>
+                    <strong class="pos-cart__total-amount" x-text="formatPrice(total)"></strong>
                 </div>
             </div>
-            
+
             <div class="pos-cart__actions">
-                <button class="btn btn--ghost" @click="clearCart()">{% trans "Vider" %}</button>
-                <button class="btn btn--primary btn--block" @click="checkout()" :disabled="cart.length === 0">
-                    {% trans "Imprimer la facture" %}
+                <button class="btn btn--ghost" @click="clearCart()" :disabled="cart.length === 0">{% trans "Vider" %}</button>
+                <button class="btn btn--primary btn--xl" @click="checkout()"
+                        :disabled="cart.length === 0 || !selectedClient">
+                    🖨 {% trans "Valider & Imprimer" %}
                 </button>
             </div>
+            <p class="pos-cart__hint">
+                <kbd>Ctrl</kbd>+<kbd>Enter</kbd> {% trans "valider" %} ·
+                <kbd>Esc</kbd> {% trans "annuler" %} ·
+                <kbd>Enter</kbd> {% trans "ajouter produit" %}
+            </p>
         </div>
     </div>
 </div>
+
+<style>
+/* === En-tête entreprise === */
+.pos-company-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #4f5eff 0%, #6b78ff 100%);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius);
+    margin-bottom: 1rem;
+}
+.pos-company-bar__left { display: flex; align-items: center; gap: 0.75rem; }
+.pos-company-bar__logo {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    background: white;
+    object-fit: contain;
+    padding: 4px;
+}
+.pos-company-bar__logo--placeholder {
+    display: flex; align-items: center; justify-content: center;
+    color: #4f5eff;
+    font-weight: 700;
+}
+.pos-company-bar__name { font-size: 0.95rem; }
+.pos-company-bar__contact { opacity: 0.85; font-size: 0.8rem; }
+.pos-clock { font-family: monospace; font-size: 0.95rem; }
+
+/* === Layout === */
+.pos-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    min-height: calc(100vh - 220px);
+}
+@media (max-width: 1024px) {
+    .pos-grid { grid-template-columns: 1fr; }
+}
+
+/* === Colonne saisie === */
+.pos-entry { background: var(--color-surface); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow-sm); }
+.pos-entry__title { margin: 0 0 1rem; font-size: 1rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.pos-entry__label { display: block; font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: 0.25rem; font-weight: 500; }
+.pos-entry__search {
+    font-size: 1.5rem !important;
+    height: 60px !important;
+    padding: 0 1rem !important;
+    font-weight: 600;
+}
+
+/* === Autocomplétion === */
+.autocomplete { position: relative; }
+.autocomplete__dropdown {
+    position: absolute;
+    top: 100%; left: 0; right: 0;
+    background: white;
+    border: 1px solid var(--color-border);
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    box-shadow: var(--shadow-md);
+    max-height: 320px;
+    overflow-y: auto;
+    z-index: 100;
+}
+.autocomplete__item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--color-border);
+    transition: background 0.1s;
+}
+.autocomplete__item:hover, .autocomplete__item--active { background: var(--color-bg); }
+.autocomplete__item-main { display: flex; flex-direction: column; gap: 0.15rem; }
+.autocomplete__item-ref { color: var(--color-text-muted); font-family: monospace; font-size: 0.75rem; }
+.autocomplete__item-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem; }
+.autocomplete__item-price { font-weight: 600; color: var(--color-primary); }
+.autocomplete__item-stock { font-size: 0.75rem; color: var(--color-text-muted); }
+.autocomplete__item-stock--low { color: #f5a524; }
+.autocomplete__item-stock--out { color: #e5484d; font-weight: 600; }
+.autocomplete__empty { padding: 1rem; text-align: center; color: var(--color-text-muted); }
+
+/* === Produit sélectionné === */
+.pos-selected {
+    margin-top: 1.5rem;
+    background: linear-gradient(135deg, #f0f3ff 0%, #f9fafc 100%);
+    border: 1px solid #d0d8ff;
+    border-radius: var(--radius);
+    padding: 1.25rem;
+}
+.pos-selected__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #d0d8ff;
+}
+.pos-selected__ref { display: block; font-family: monospace; font-size: 0.75rem; color: var(--color-text-muted); }
+.pos-selected__name { display: block; font-size: 1.1rem; color: var(--color-text); margin-top: 0.15rem; }
+.pos-selected__form {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.pos-selected__qty, .pos-selected__price, .pos-selected__subtotal { display: flex; flex-direction: column; gap: 0.25rem; }
+.pos-selected__qty label, .pos-selected__price label, .pos-selected__subtotal label { font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 600; }
+.pos-selected__unit { font-size: 0.75rem; color: var(--color-text-muted); text-align: center; }
+.pos-selected__price-display, .pos-selected__subtotal-display {
+    background: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-sm);
+    text-align: center;
+    border: 1px solid var(--color-border);
+}
+.pos-selected__price-display strong, .pos-selected__subtotal-display strong { font-size: 1.05rem; color: var(--color-text); }
+.pos-selected__subtotal-display strong { color: var(--color-primary); font-size: 1.25rem; }
+.pos-selected__hint { display: block; font-size: 0.65rem; color: var(--color-text-muted); margin-top: 0.15rem; }
+.qty-input {
+    display: flex;
+    align-items: center;
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+.qty-input__btn {
+    width: 40px;
+    height: 42px;
+    background: var(--color-bg);
+    border: none;
+    cursor: pointer;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-text);
+    transition: background 0.15s;
+}
+.qty-input__btn:hover { background: var(--color-primary); color: white; }
+.qty-input__field {
+    flex: 1;
+    border: none;
+    outline: none;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text);
+    height: 42px;
+}
+.btn--xl { padding: 0.85rem 1.5rem; font-size: 1rem; font-weight: 600; }
+.btn--xl kbd { margin-left: 0.5rem; padding: 0.15rem 0.4rem; background: rgba(255,255,255,0.25); border-radius: 4px; font-size: 0.75rem; }
+
+/* === Grille pliable === */
+.pos-grid-toggle { margin-top: 1.5rem; }
+.pos-grid-toggle summary { color: var(--color-text-muted); cursor: pointer; font-size: 0.85rem; padding: 0.5rem 0; }
+.pos-grid-toggle summary:hover { color: var(--color-primary); }
+.pos-grid-toggle[open] summary { margin-bottom: 1rem; }
+
+/* === Facture === */
+.pos-cart {
+    background: var(--color-surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.pos-cart__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    background: var(--color-sidebar);
+    color: white;
+}
+.pos-cart__header h3 { margin: 0; font-size: 1.1rem; }
+.pos-cart__num { display: block; font-family: monospace; font-size: 0.75rem; opacity: 0.7; margin-top: 0.15rem; }
+.pos-cart__form { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; padding: 1rem 1.5rem; border-bottom: 1px solid var(--color-border); }
+.pos-cart__form .field label { font-size: 0.7rem; text-transform: uppercase; color: var(--color-text-muted); font-weight: 600; }
+.pos-cart__items { flex: 1; overflow-y: auto; padding: 0.5rem 0; min-height: 200px; }
+.cart-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.85rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+}
+.cart-item__info { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.cart-item__info strong { font-size: 0.9rem; color: var(--color-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cart-item__ref { font-size: 0.7rem; color: var(--color-text-muted); font-family: monospace; }
+.cart-item__price { font-size: 0.75rem; color: var(--color-text-muted); }
+.cart-item__qty { display: flex; align-items: center; gap: 0.4rem; background: var(--color-bg); border-radius: 6px; padding: 0.2rem 0.4rem; }
+.cart-item__qty .icon-btn { width: 26px; height: 26px; border: none; background: transparent; cursor: pointer; border-radius: 4px; font-weight: 700; }
+.cart-item__qty .icon-btn:hover { background: var(--color-primary); color: white; }
+.cart-item__qty span { min-width: 24px; text-align: center; font-weight: 600; }
+.cart-item__total { font-weight: 700; color: var(--color-text); min-width: 80px; text-align: right; }
+.cart-item__qty { min-width: 110px; justify-content: space-between; }
+
+.pos-cart__totals { padding: 1rem 1.5rem; background: var(--color-bg); border-top: 1px solid var(--color-border); }
+.pos-cart__row { display: flex; justify-content: space-between; padding: 0.3rem 0; }
+.pos-cart__row--total { font-size: 1.4rem; color: var(--color-primary); padding: 0.6rem 0; border-top: 2px dashed var(--color-border); margin-top: 0.4rem; }
+.pos-cart__total-amount { font-size: 1.6rem; }
+
+.pos-cart__actions { display: grid; grid-template-columns: 1fr 2fr; gap: 0.75rem; padding: 1rem 1.5rem; }
+.pos-cart__hint { padding: 0 1.5rem 1rem; font-size: 0.7rem; color: var(--color-text-muted); text-align: center; margin: 0; }
+.pos-cart__hint kbd { background: var(--color-bg); border: 1px solid var(--color-border); padding: 0.1rem 0.35rem; border-radius: 3px; font-size: 0.65rem; }
+
+.input--xl { font-size: 1.25rem; padding: 0.75rem 1rem; height: auto; }
+.icon-btn--danger { color: var(--color-danger); }
+
+/* === Grille produits pliable === */
+.category-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+}
+.category-tab {
+    padding: 0.4rem 0.85rem;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.category-tab:hover { border-color: var(--color-primary); }
+.category-tab--active { background: var(--color-primary); color: white; border-color: var(--color-primary); }
+.category-tab__img { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; }
+
+.pos-products__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.5rem;
+}
+.product-card {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.product-card:hover { border-color: var(--color-primary); transform: translateY(-1px); }
+.product-card--out { opacity: 0.5; cursor: not-allowed; }
+.product-card__info { display: flex; flex-direction: column; gap: 0.2rem; }
+.product-card__info strong { font-size: 0.85rem; }
+.product-card__price { font-size: 0.85rem; color: var(--color-primary); font-weight: 600; }
+.product-card__stock { font-size: 0.7rem; color: var(--color-text-muted); }
+
+.empty-state { text-align: center; padding: 2rem 1rem; color: var(--color-text-muted); }
+.empty-state__icon { font-size: 2.5rem; margin-bottom: 0.5rem; opacity: 0.5; }
+</style>
 
 <script>
 function posData() {
@@ -113,37 +492,54 @@ function posData() {
         products: [],
         categories: [],
         cart: [],
+        cartIdCounter: 0,
         searchQuery: '',
-        selectedCategory: null,
+        searchFocused: false,
+        suggestions: [],
+        selectedSuggestion: 0,
+        selectedProduct: null,
+        pendingQty: 1,
+        pendingPrice: 0,
         selectedClient: '',
         selectedWarehouse: '{% if entrepots %}{{ entrepots.0.pk }}{% endif %}',
+        selectedCategory: null,
         subtotal: 0,
         total: 0,
-        
+        now: '',
+        invoiceNumber: '',
+        clockInterval: null,
+
         init() {
             this.loadProducts();
             this.loadCategories();
+            this.updateClock();
+            this.clockInterval = setInterval(() => this.updateClock(), 1000);
+            this.generateInvoiceNumber();
             document.addEventListener('keydown', (e) => {
-                if (e.ctrlKey && e.key === 'Enter') { this.checkout(); }
-                if (e.key === 'Escape') { this.clearCart(); }
+                if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); this.checkout(); }
+                if (e.key === 'Escape' && !this.searchFocused) { this.clearCart(); }
+                if (e.key === 'F2') { e.preventDefault(); this.$refs.productInput?.focus(); }
             });
         },
-        
+
         loadProducts() {
             this.products = [
                 {% for p in produits %}
                 {
                     id: {{ p.pk }},
+                    reference: "{{ p.reference|escapejs }}",
                     nom: "{{ p.nom|escapejs }}",
                     prix_unitaire: {{ p.prix_unitaire }},
                     quantite_totale: {{ p.quantite_totale|default:0 }},
+                    seuil_alerte: {{ p.seuil_alerte|default:0 }},
+                    unite: "{{ p.unite|escapejs }}",
                     categorie_id: {{ p.categorie.pk|default:"null" }},
                     image: {% if p.image %}"{{ p.image.url }}"{% else %}null{% endif %}
                 }{% if not forloop.last %},{% endif %}
                 {% endfor %}
             ];
         },
-        
+
         loadCategories() {
             this.categories = [
                 {% for c in categories %}
@@ -156,32 +552,112 @@ function posData() {
                 {% endfor %}
             ];
         },
-        
+
+        updateClock() {
+            const d = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            this.now = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        },
+
+        generateInvoiceNumber() {
+            const d = new Date();
+            const ymd = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+            const rnd = Math.floor(Math.random() * 9000) + 1000;
+            this.invoiceNumber = `FAC-${ymd}-${rnd}`;
+        },
+
         get filteredProducts() {
             return this.products.filter(p => {
                 if (this.selectedCategory && p.categorie_id !== this.selectedCategory) return false;
-                if (this.searchQuery && !p.nom.toLowerCase().includes(this.searchQuery.toLowerCase())) return false;
+                if (this.searchQuery && !p.nom.toLowerCase().includes(this.searchQuery.toLowerCase()) && !p.reference.toLowerCase().includes(this.searchQuery.toLowerCase())) return false;
                 return true;
             });
         },
-        
-        formatPrice(price) {
-            return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(price);
+
+        onSearchInput(event) {
+            const q = event.target.value;
+            this.searchQuery = q;
+            this.selectedSuggestion = 0;
+            if (q.length < 1) {
+                this.suggestions = [];
+                this.selectedProduct = null;
+                return;
+            }
+            const lq = q.toLowerCase();
+            this.suggestions = this.products
+                .filter(p => p.nom.toLowerCase().includes(lq) || p.reference.toLowerCase().includes(lq))
+                .slice(0, 12);
         },
-        
-        addToCart(product) {
-            if (product.quantite_totale <= 0) return;
-            const existing = this.cart.find(c => c.id === product.id);
+
+        moveSuggestion(delta) {
+            if (this.suggestions.length === 0) return;
+            this.selectedSuggestion = (this.selectedSuggestion + delta + this.suggestions.length) % this.suggestions.length;
+        },
+
+        selectProduct(product) {
+            this.selectedProduct = product;
+            this.pendingPrice = parseFloat(product.prix_unitaire);
+            this.pendingQty = 1;
+            this.searchQuery = product.nom;
+            this.suggestions = [];
+            this.searchFocused = false;
+        },
+
+        clearSearch() {
+            this.searchQuery = '';
+            this.suggestions = [];
+            this.selectedSuggestion = 0;
+        },
+
+        clearSelected() {
+            this.selectedProduct = null;
+            this.searchQuery = '';
+            this.pendingQty = 1;
+            this.pendingPrice = 0;
+            this.$nextTick(() => this.$refs.productInput?.focus());
+        },
+
+        adjustQty(delta) {
+            const newQty = (this.pendingQty || 0) + delta;
+            this.pendingQty = Math.max(1, newQty);
+        },
+
+        onQtyInput() {
+            if (!this.pendingQty || this.pendingQty < 1) this.pendingQty = 1;
+        },
+
+        addSelectedToCart() {
+            if (!this.selectedProduct) return;
+            const qty = parseInt(this.pendingQty) || 1;
+            const existing = this.cart.find(c => c.id === this.selectedProduct.id);
             if (existing) {
-                if (existing.quantity < product.quantite_totale) {
-                    existing.quantity++;
+                const newQty = existing.quantity + qty;
+                if (newQty <= this.selectedProduct.quantite_totale) {
+                    existing.quantity = newQty;
+                } else {
+                    existing.quantity = this.selectedProduct.quantite_totale;
                 }
             } else {
-                this.cart.push({ ...product, quantity: 1 });
+                if (qty > this.selectedProduct.quantite_totale) {
+                    qty = this.selectedProduct.quantite_totale;
+                }
+                this.cart.push({
+                    ...this.selectedProduct,
+                    cartId: ++this.cartIdCounter,
+                    quantity: qty,
+                });
             }
             this.calculateTotals();
+            this.clearSelected();
+            this.$nextTick(() => this.$refs.productInput?.focus());
         },
-        
+
+        quickAddFromGrid(product) {
+            this.selectProduct(product);
+            this.pendingQty = 1;
+            this.addSelectedToCart();
+        },
+
         updateQuantity(idx, delta) {
             const item = this.cart[idx];
             const newQty = item.quantity + delta;
@@ -192,28 +668,35 @@ function posData() {
             }
             this.calculateTotals();
         },
-        
+
         removeFromCart(idx) {
             this.cart.splice(idx, 1);
             this.calculateTotals();
         },
-        
+
         clearCart() {
             this.cart = [];
             this.calculateTotals();
+            this.generateInvoiceNumber();
         },
-        
+
         calculateTotals() {
-            this.subtotal = this.cart.reduce((sum, i) => sum + (i.prix_unitaire * i.quantity), 0);
+            this.subtotal = this.cart.reduce((sum, i) => sum + (parseFloat(i.prix_unitaire) * i.quantity), 0);
             this.total = this.subtotal;
         },
-        
+
+        formatPrice(price) {
+            const n = parseFloat(price) || 0;
+            return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' FC';
+        },
+
         async checkout() {
-            if (this.cart.length === 0 || !this.selectedClient) {
-                alert('{% trans "Veuillez sélectionner un client et ajouter des produits." %}');
+            if (this.cart.length === 0) return;
+            if (!this.selectedClient) {
+                alert('{% trans "Veuillez sélectionner un client." %}');
                 return;
             }
-            
+
             const response = await fetch('{% url "orders:pos_create" %}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
@@ -223,14 +706,29 @@ function posData() {
                     items: this.cart.map(c => ({ id: c.id, quantity: c.quantity }))
                 })
             });
-            
+
             if (response.ok) {
-                const html = await response.text();
-                document.body.insertAdjacentHTML('beforeend', html);
-                setTimeout(() => window.print(), 500);
-                this.clearCart();
+                const data = await response.json();
+                if (data.print_url) {
+                    this.openReceiptWindow(data.print_url);
+                }
+                this.cart = [];
+                this.calculateTotals();
+                this.generateInvoiceNumber();
             } else {
-                alert('{% trans "Erreur lors de la création de la commande." %}');
+                const err = await response.text();
+                alert('{% trans "Erreur lors de la création de la commande." %}\n' + err);
+            }
+        },
+
+        openReceiptWindow(url) {
+            const w = window.open(url, 'receipt', 'width=420,height=720,scrollbars=yes,resizable=yes');
+            if (!w) {
+                alert('{% trans "Autorisez les popups pour imprimer la facture." %}');
+            } else {
+                w.addEventListener('load', () => {
+                    setTimeout(() => { try { w.print(); } catch(e) {} }, 300);
+                });
             }
         }
     }

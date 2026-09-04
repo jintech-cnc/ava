@@ -3,48 +3,161 @@
 {% block title %}{% trans "Fournisseurs" %}{% endblock %}
 {% block page_title %}{% trans "Fournisseurs" %}{% endblock %}
 {% block content %}
-<div class="panel">
-    <div class="toolbar">
+<div class="page-header">
+    <div class="page-header__left">
+        <p class="page-header__sub">{% trans "Gérez vos partenaires d'achat et leurs coordonnées" %}</p>
+    </div>
+    <div class="page-header__right">
         <a href="{% url 'inventory:reorder_dashboard' %}" class="btn btn--ghost">← {% trans "Retour" %}</a>
-        <a href="{% url 'inventory:supplier_create' %}" class="btn btn--primary">+ {% trans "Ajouter un fournisseur" %}</a>
+        <a href="{% url 'inventory:supplier_create' %}" class="btn btn--primary">+ {% trans "Nouveau fournisseur" %}</a>
+    </div>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-card__icon">🏢</div>
+        <div class="stat-card__value">{{ fournisseurs|length }}</div>
+        <div class="stat-card__label">{% trans "Fournisseurs au total" %}</div>
+    </div>
+    <div class="stat-card stat-card--success">
+        <div class="stat-card__icon">✓</div>
+        <div class="stat-card__value">{{ fournisseurs|length }}</div>
+        <div class="stat-card__label">{% trans "Actifs" %}</div>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel__header">
+        <h3 class="panel__title">🏢 {% trans "Liste des fournisseurs" %}</h3>
+        <input type="text" class="input input--search" placeholder='{% trans "Rechercher..." %}' style="max-width: 280px;">
     </div>
 
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>{% trans "Nom" %}</th>
-                <th>{% trans "Contact" %}</th>
-                <th>{% trans "Email" %}</th>
-                <th>{% trans "Téléphone" %}</th>
-                <th>{% trans "Statut" %}</th>
-                <th>{% trans "Actions" %}</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for s in fournisseurs %}
-            <tr class="data-row">
-                <td><strong>{{ s.nom }}</strong></td>
-                <td>{{ s.contact|default:"-" }}</td>
-                <td>{{ s.email|default:"-" }}</td>
-                <td>{{ s.telephone|default:"-" }}</td>
-                <td>
-                    {% if s.actif %}
-                    <span class="badge badge--entree">{% trans "Actif" %}</span>
-                    {% else %}
-                    <span class="badge badge--sortie">{% trans "Inactif" %}</span>
-                    {% endif %}
-                </td>
-                <td class="data-row__actions">
-                    <a href="{% url 'inventory:supplier_edit' s.pk %}" class="icon-btn">✎</a>
-                    <a href="{% url 'inventory:supplier_delete' s.pk %}" class="icon-btn icon-btn--danger">🗑</a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="6" class="empty-state">{% trans "Aucun fournisseur." %}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    {% if fournisseurs %}
+    <div class="supplier-grid">
+        {% for s in fournisseurs %}
+        <div class="supplier-card {% if not s.actif %}supplier-card--inactive{% endif %}">
+            <div class="supplier-card__head">
+                <div class="supplier-card__avatar">{{ s.nom|slice:":1"|upper }}</div>
+                <div class="supplier-card__head-info">
+                    <h4>{{ s.nom }}</h4>
+                    {% if s.contact %}<p class="muted">{{ s.contact }}</p>{% endif %}
+                </div>
+                {% if s.actif %}
+                    <span class="badge badge--success">{% trans "Actif" %}</span>
+                {% else %}
+                    <span class="badge badge--muted">{% trans "Inactif" %}</span>
+                {% endif %}
+            </div>
+            <div class="supplier-card__body">
+                {% if s.email %}
+                <div class="supplier-card__line">
+                    <span class="supplier-card__icon">✉</span>
+                    <a href="mailto:{{ s.email }}">{{ s.email }}</a>
+                </div>
+                {% endif %}
+                {% if s.telephone %}
+                <div class="supplier-card__line">
+                    <span class="supplier-card__icon">☏</span>
+                    <a href="tel:{{ s.telephone }}">{{ s.telephone }}</a>
+                </div>
+                {% endif %}
+                {% if s.adresse %}
+                <div class="supplier-card__line">
+                    <span class="supplier-card__icon">⌂</span>
+                    <span>{{ s.adresse|truncatewords:15 }}</span>
+                </div>
+                {% endif %}
+                {% if s.notes %}
+                <div class="supplier-card__notes">📝 {{ s.notes|truncatewords:20 }}</div>
+                {% endif %}
+            </div>
+            <div class="supplier-card__actions">
+                <a href="{% url 'inventory:supplier_edit' s.pk %}" class="btn btn--ghost btn--sm">✎ {% trans "Modifier" %}</a>
+                <a href="{% url 'inventory:supplier_delete' s.pk %}" class="btn btn--ghost btn--sm btn--danger-ghost">🗑</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state__icon">🏢</div>
+        <p>{% trans "Aucun fournisseur enregistré." %}</p>
+        <a href="{% url 'inventory:supplier_create' %}" class="btn btn--primary">+ {% trans "Ajouter le premier fournisseur" %}</a>
+    </div>
+    {% endif %}
 </div>
+
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1.25rem 1.5rem;
+    background: var(--color-surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
+}
+.page-header__sub { margin: 0; color: var(--color-text-muted); font-size: 0.9rem; }
+.page-header__right { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+.stat-card--success .stat-card__icon { color: #17a673; }
+
+.supplier-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+}
+.supplier-card {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.supplier-card:hover {
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-2px);
+}
+.supplier-card--inactive { opacity: 0.65; }
+.supplier-card__head { display: flex; align-items: center; gap: 0.75rem; }
+.supplier-card__avatar {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, #4f5eff 0%, #6b78ff 100%);
+    color: white;
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.25rem; font-weight: 700;
+    flex-shrink: 0;
+}
+.supplier-card__head-info { flex: 1; min-width: 0; }
+.supplier-card__head-info h4 { margin: 0; font-size: 1rem; }
+.supplier-card__head-info p { margin: 0; font-size: 0.8rem; }
+.supplier-card__body { display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.85rem; }
+.supplier-card__line { display: flex; align-items: center; gap: 0.5rem; }
+.supplier-card__icon { width: 20px; color: var(--color-primary); text-align: center; }
+.supplier-card__line a { color: var(--color-text); text-decoration: none; }
+.supplier-card__line a:hover { color: var(--color-primary); text-decoration: underline; }
+.supplier-card__notes {
+    padding: 0.5rem 0.75rem;
+    background: white;
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+.supplier-card__actions { display: flex; gap: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border); }
+.btn--danger-ghost { color: var(--color-danger); }
+.btn--danger-ghost:hover { background: rgba(229, 72, 77, 0.1); }
+
+.badge--success { background: rgba(23, 166, 115, 0.15); color: #17a673; }
+.badge--muted { background: var(--color-border); color: var(--color-text-muted); }
+.muted { color: var(--color-text-muted); font-size: 0.75rem; }
+.input--search { padding: 0.5rem 0.75rem; }
+</style>
 {% endblock %}

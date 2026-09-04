@@ -2,13 +2,21 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.translation import gettext as _
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.db.models import Q
 import json
 
 from .models import Order, Requisition, Client, OrderItem
 from .forms import OrderForm, OrderItemFormSet, RequisitionForm, RequisitionItemFormSet
-from inventory.models import Product, Warehouse, Category
+from inventory.models import Product, Warehouse, Category, Company
+
+
+def _get_current_company(request):
+    """Récupère l'entreprise active."""
+    profile = getattr(request.user, 'profile', None)
+    if profile and profile.company and profile.company.actif:
+        return profile.company
+    return Company.objects.filter(actif=True).first()
 
 
 @login_required
@@ -18,50 +26,69 @@ def pos_view(request):
     categories = Category.objects.all()
     clients = Client.objects.all()
     entrepots = Warehouse.objects.all()
+    company = _get_current_company(request)
     return render(request, 'orders/pos.html', {
         'produits': produits,
         'categories': categories,
         'clients': clients,
         'entrepots': entrepots,
+        'company': company,
     })
 
 
 @login_required
 def pos_create_order(request):
-    """Crée une commande via l'interface POS."""
+    """Crée une commande via l'interface POS et retourne l'URL du ticket."""
     if request.method == 'POST':
-        import json
         data = json.loads(request.body)
-        
+
         client_id = data.get('client_id')
         entrepot_id = data.get('entrepot_id')
         items = data.get('items', [])
-        
+
         if not items:
-            return redirect('orders:pos')
-            
+            return JsonResponse({'error': 'Aucun article'}, status=400)
+
         client = get_object_or_404(Client, pk=client_id)
         entrepot = get_object_or_404(Warehouse, pk=entrepot_id)
-        
+
         commande = Order.objects.create(
             client=client,
             entrepot=entrepot,
             cree_par=request.user,
-            statut=Order.Statut.CONFIRMEE
+            statut=Order.Statut.CONFIRMEE,
         )
-        
+
         for item in items:
             produit = get_object_or_404(Product, pk=item['id'])
             OrderItem.objects.create(
                 commande=commande,
                 produit=produit,
                 quantite=item['quantity'],
-                prix_unitaire=produit.prix_unitaire
+                prix_unitaire=produit.prix_unitaire,
             )
-            
-        return render(request, 'orders/_pos_success.html', {'commande': commande})
-    
+
+        return JsonResponse({
+            'success': True,
+            'order_id': commande.pk,
+            'print_url': request.build_absolute_uri(f'/commandes/{commande.pk}/ticket/'),
+        })
+
     return redirect('orders:pos')
+
+
+@login_required
+def order_ticket(request, pk):
+    """Génère le ticket de caisse 80mm pour impression directe."""
+    commande = get_object_or_404(
+        Order.objects.select_related('client', 'entrepot', 'cree_par').prefetch_related('lignes__produit'),
+        pk=pk,
+    )
+    company = _get_current_company(request)
+    return render(request, 'orders/ticket_80mm.html', {
+        'commande': commande,
+        'company': company,
+    })
 
 
 @login_required

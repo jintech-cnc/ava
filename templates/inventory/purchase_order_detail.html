@@ -1,123 +1,154 @@
 {% extends "base.html" %}
 {% load i18n static %}
 {% block title %}{% trans "Bon de commande" %} {{ bon.reference }}{% endblock %}
-{% block page_title %}{% trans "Détails du bon de commande" %}{% endblock %}
+{% block page_title %}{% trans "Bon de commande" %}{% endblock %}
 {% block content %}
-<div class="toolbar">
-    <a href="{% url 'inventory:purchase_order_list' %}" class="btn btn--ghost">← {% trans "Retour à la liste" %}</a>
-    <div class="export-menu" x-data="{ open: false }">
-        <button class="btn btn--ghost" @click="open = !open">
-            📥 {% trans "Exporter" %} ▾
-        </button>
-        <div class="export-menu__items" x-show="open" @click.outside="open = false" x-transition x-cloak>
-            <a href="{% url 'utils:export_po_pdf' bon.pk %}" class="export-menu__item" target="_blank">
-                📄 {% trans "PDF" %}
-            </a>
-            <a href="{% url 'utils:export_po_excel' bon.pk %}" class="export-menu__item" target="_blank">
-                📊 {% trans "Excel" %}
-            </a>
-        </div>
+<div class="page-header">
+    <div class="page-header__left">
+        <p class="muted">{{ bon.reference }} · {% trans "Créé le" %} {{ bon.cree_le|date:"d/m/Y à H:i" }}</p>
     </div>
-    
-    {% if bon.statut == 'brouillon' %}
-    <form action="{% url 'inventory:purchase_order_status' bon.pk 'commande' %}" method="post" style="display:inline;">
-        {% csrf_token %}
-        <button type="submit" class="btn btn--primary">{% trans "Confirmer la commande" %}</button>
-    </form>
-    {% endif %}
-
-    {% if bon.statut == 'commande' or bon.statut == 'partielle' %}
-    <button class="btn btn--primary" @click="$refs.receiveModal.showModal()">{% trans "Réceptionner les articles" %}</button>
-    {% endif %}
-</div>
-
-<div class="panel">
-    <div class="detail-grid">
-        <div>
-            <label class="field-label">{% trans "Référence" %}</label>
-            <p>{{ bon.reference }}</p>
-        </div>
-        <div>
-            <label class="field-label">{% trans "Statut" %}</label>
-            <p><span class="badge">{{ bon.get_statut_display }}</span></p>
-        </div>
-        <div>
-            <label class="field-label">{% trans "Fournisseur" %}</label>
-            <p><strong>{{ bon.fournisseur.nom }}</strong></p>
-        </div>
-        <div>
-            <label class="field-label">{% trans "Entrepôt de destination" %}</label>
-            <p>{{ bon.entrepot.nom|default:"-" }}</p>
-        </div>
-        <div>
-            <label class="field-label">{% trans "Date de commande" %}</label>
-            <p>{{ bon.date_commande|default:"-" }}</p>
-        </div>
-        <div>
-            <label class="field-label">{% trans "Livraison prévue" %}</label>
-            <p>{{ bon.date_livraison_prevue|default:"-" }}</p>
-        </div>
+    <div class="page-header__right">
+        <a href="{% url 'inventory:purchase_order_list' %}" class="btn btn--ghost">← {% trans "Liste" %}</a>
+        <a href="{% url 'inventory:export_po_pdf' bon.pk %}" target="_blank" class="btn btn--outline">📄 PDF</a>
+        <a href="{% url 'inventory:export_po_excel' bon.pk %}" class="btn btn--outline">📊 Excel</a>
+        {% if bon.statut == 'brouillon' %}
+        <form action="{% url 'inventory:purchase_order_status' bon.pk 'commande' %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn--primary">{% trans "Confirmer" %}</button>
+        </form>
+        {% endif %}
+        {% if bon.statut == 'commande' or bon.statut == 'partielle' %}
+        <button class="btn btn--primary" @click="$refs.receiveModal.showModal()">{% trans "Réceptionner" %}</button>
+        {% endif %}
     </div>
 </div>
 
-<div class="panel">
-    <h3 class="panel__title">{% trans "Articles commandés" %}</h3>
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>{% trans "Produit" %}</th>
-                <th class="text-right">{% trans "Qté commandée" %}</th>
-                <th class="text-right">{% trans "Qté reçue" %}</th>
-                <th class="text-right">{% trans "Prix unitaire" %}</th>
-                <th class="text-right">{% trans "Sous-total" %}</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for ligne in bon.lignes.all %}
-            <tr>
-                <td>{{ ligne.produit.nom }}</td>
-                <td class="text-right">{{ ligne.quantite_commandee }}</td>
-                <td class="text-right">{{ ligne.quantite_recue }}</td>
-                <td class="text-right">{{ ligne.prix_unitaire|floatformat:2 }} €</td>
-                <td class="text-right"><strong>{{ ligne.montant_ligne|floatformat:2 }} €</strong></td>
-            </tr>
-            {% endfor %}
-        </tbody>
-        <tfoot>
-            <tr>
-                <td colspan="4" class="text-right"><strong>{% trans "TOTAL" %}</strong></td>
-                <td class="text-right"><strong>{{ bon.montant_total|floatformat:2 }} €</strong></td>
-            </tr>
-        </tfoot>
-    </table>
+<div class="status-banner status-banner--{{ bon.statut }}">
+    <div class="status-banner__icon">
+        {% if bon.statut == 'brouillon' %}📝
+        {% elif bon.statut == 'commande' %}🚚
+        {% elif bon.statut == 'partielle' %}📦
+        {% elif bon.statut == 'livree' %}✓
+        {% else %}✕
+        {% endif %}
+    </div>
+    <div>
+        <strong>{{ bon.get_statut_display }}</strong>
+        <p>
+            {% if bon.statut == 'brouillon' %}{% trans "En attente de confirmation" %}
+            {% elif bon.statut == 'commande' %}{% trans "Commande passée au fournisseur" %}
+            {% elif bon.statut == 'partielle' %}{% trans "Réception partielle" %}
+            {% elif bon.statut == 'livree' %}{% trans "Commande livrée intégralement" %}
+            {% else %}{% trans "Commande annulée" %}
+            {% endif %}
+        </p>
+    </div>
 </div>
+
+<div class="info-grid">
+    <div class="info-card">
+        <h4>{% trans "Fournisseur" %}</h4>
+        <p class="info-card__main">{{ bon.fournisseur.nom }}</p>
+        {% if bon.fournisseur.contact %}<p class="muted">👤 {{ bon.fournisseur.contact }}</p>{% endif %}
+        {% if bon.fournisseur.telephone %}<p class="muted">☏ {{ bon.fournisseur.telephone }}</p>{% endif %}
+        {% if bon.fournisseur.email %}<p class="muted">✉ {{ bon.fournisseur.email }}</p>{% endif %}
+    </div>
+    <div class="info-card">
+        <h4>{% trans "Livraison" %}</h4>
+        <p class="info-card__main">{{ bon.entrepot.nom|default:"—" }}</p>
+        <p class="muted">📍 {% trans "Entrepôt de destination" %}</p>
+        {% if bon.date_livraison_prevue %}
+        <p class="muted">📅 {% trans "Prévue le" %} <strong>{{ bon.date_livraison_prevue|date:"d/m/Y" }}</strong></p>
+        {% endif %}
+    </div>
+    <div class="info-card">
+        <h4>{% trans "Suivi" %}</h4>
+        <p class="muted">📝 {% trans "Créé par" %}: <strong>{{ bon.cree_par.get_full_name|default:bon.cree_par.username|default:"—" }}</strong></p>
+        <p class="muted">📅 {{ bon.cree_le|date:"d/m/Y" }}</p>
+    </div>
+</div>
+
+<div class="panel">
+    <h3 class="panel__title">📋 {% trans "Articles commandés" %} ({{ bon.lignes.count }})</h3>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>{% trans "Référence" %}</th>
+                    <th>{% trans "Produit" %}</th>
+                    <th class="text-right">{% trans "Qté commandée" %}</th>
+                    <th class="text-right">{% trans "Qté reçue" %}</th>
+                    <th>{% trans "Avancement" %}</th>
+                    <th class="text-right">{% trans "Prix unit." %}</th>
+                    <th class="text-right">{% trans "Sous-total" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ligne in bon.lignes.all %}
+                <tr>
+                    <td><code>{{ ligne.produit.reference }}</code></td>
+                    <td><strong>{{ ligne.produit.nom }}</strong></td>
+                    <td class="text-right">{{ ligne.quantite_commandee }}</td>
+                    <td class="text-right">
+                        <span class="badge badge--{% if ligne.quantite_recue == 0 %}muted{% elif ligne.est_complete %}success{% else %}warn{% endif %}">
+                            {{ ligne.quantite_recue }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-bar__fill" style="width: {% widthratio ligne.quantite_recue ligne.quantite_commandee 100 %}%"></div>
+                        </div>
+                    </td>
+                    <td class="text-right">{{ ligne.prix_unitaire|floatformat:2 }} FC</td>
+                    <td class="text-right"><strong>{{ ligne.montant_ligne|floatformat:2 }} FC</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="6" class="text-right"><strong>{% trans "TOTAL" %}</strong></td>
+                    <td class="text-right"><strong class="text-primary" style="font-size: 1.1rem;">{{ bon.montant_total|floatformat:2 }} FC</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+{% if bon.notes %}
+<div class="panel">
+    <h3 class="panel__title">📝 {% trans "Notes" %}</h3>
+    <p>{{ bon.notes }}</p>
+</div>
+{% endif %}
 
 {% if bon.statut == 'commande' or bon.statut == 'partielle' %}
-<dialog x-ref="receiveModal" class="modal-panel" style="padding:0; border:none; border-radius:16px;">
+<dialog x-ref="receiveModal" class="modal-panel" style="padding:0; border:none; border-radius:16px; max-width: 600px; width: 90%;">
     <div class="modal-panel__header">
         <h2>{% trans "Réception de marchandise" %}</h2>
         <button type="button" class="icon-btn" @click="$refs.receiveModal.close()">✕</button>
     </div>
     <form action="{% url 'inventory:purchase_order_receive' bon.pk %}" method="post">
         {% csrf_token %}
-        <div class="modal-panel__body" style="display:block;">
-            <p>{% trans "Veuillez indiquer les quantités reçues pour chaque article." %}</p>
-            <table class="data-table" style="margin-top:15px;">
+        <div class="modal-panel__body" style="display:block; padding: 1.5rem;">
+            <p class="muted" style="margin-bottom: 1rem;">{% trans "Indiquez les quantités réellement reçues." %}</p>
+            <table class="data-table">
                 <thead>
                     <tr>
                         <th>{% trans "Produit" %}</th>
-                        <th>{% trans "Reste à recevoir" %}</th>
-                        <th width="120">{% trans "Qté reçue" %}</th>
+                        <th>{% trans "Commandé" %}</th>
+                        <th>{% trans "Déjà reçu" %}</th>
+                        <th>{% trans "Qté reçue" %}</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for ligne in bon.lignes.all %}
                     <tr>
                         <td>{{ ligne.produit.nom }}</td>
-                        <td>{{ ligne.quantite_commandee|add:ligne.quantite_recue|add:"-0" }}</td>
+                        <td>{{ ligne.quantite_commandee }}</td>
+                        <td>{{ ligne.quantite_recue }}</td>
                         <td>
-                            <input type="number" name="qte_{{ ligne.pk }}" class="input" 
-                                   value="{{ ligne.quantite_commandee }}" min="0">
+                            <input type="number" name="qte_{{ ligne.pk }}" class="input"
+                                   value="{{ ligne.quantite_commandee }}" min="0" style="width: 100px;">
                         </td>
                     </tr>
                     {% endfor %}
@@ -131,4 +162,74 @@
     </form>
 </dialog>
 {% endif %}
+
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1.25rem 1.5rem;
+    background: var(--color-surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
+}
+.page-header__sub { margin: 0; color: var(--color-text-muted); font-size: 0.9rem; }
+.page-header__right { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+
+.status-banner {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    border-radius: var(--radius);
+    margin-bottom: 1.5rem;
+    border: 1px solid;
+}
+.status-banner__icon { font-size: 2rem; }
+.status-banner strong { display: block; font-size: 1.05rem; }
+.status-banner p { margin: 0; font-size: 0.85rem; }
+.status-banner--brouillon { background: rgba(107, 114, 128, 0.1); border-color: #6b7280; }
+.status-banner--commande { background: rgba(79, 94, 255, 0.1); border-color: #4f5eff; }
+.status-banner--partielle { background: rgba(245, 165, 36, 0.1); border-color: #f5a524; }
+.status-banner--livree { background: rgba(23, 166, 115, 0.1); border-color: #17a673; }
+.status-banner--annulee { background: rgba(229, 72, 77, 0.1); border-color: #e5484d; }
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.info-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+}
+.info-card h4 { margin: 0 0 0.5rem; font-size: 0.75rem; text-transform: uppercase; color: var(--color-text-muted); letter-spacing: 0.05em; }
+.info-card__main { margin: 0 0 0.5rem; font-size: 1.05rem; font-weight: 600; }
+.info-card p { margin: 0.2rem 0; font-size: 0.85rem; }
+.muted { color: var(--color-text-muted); }
+.text-right { text-align: right; }
+.text-primary { color: var(--color-primary); }
+
+.panel__title { margin: 0 0 1rem; }
+.progress-bar { background: var(--color-border); border-radius: 4px; height: 8px; overflow: hidden; min-width: 80px; }
+.progress-bar__fill { background: linear-gradient(90deg, #4f5eff 0%, #17a673 100%); height: 100%; transition: width 0.3s; }
+
+.badge--success { background: rgba(23, 166, 115, 0.15); color: #17a673; }
+.badge--warn { background: rgba(245, 165, 36, 0.15); color: #92400e; }
+.badge--muted { background: var(--color-border); color: var(--color-text-muted); }
+.badge--brouillon { background: rgba(107, 114, 128, 0.15); color: #374151; }
+.badge--commande, .badge--partielle { background: rgba(79, 94, 255, 0.15); color: #4f5eff; }
+.badge--livree { background: rgba(23, 166, 115, 0.15); color: #17a673; }
+.badge--annulee { background: rgba(229, 72, 77, 0.15); color: #b91c1c; }
+
+.btn--outline { background: white; border: 1px solid var(--color-border); color: var(--color-text); }
+.btn--outline:hover { border-color: var(--color-primary); color: var(--color-primary); }
+code { font-family: monospace; font-size: 0.8rem; color: var(--color-text-muted); }
+</style>
 {% endblock %}

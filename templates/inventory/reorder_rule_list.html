@@ -3,53 +3,128 @@
 {% block title %}{% trans "Règles de réapprovisionnement" %}{% endblock %}
 {% block page_title %}{% trans "Règles de réapprovisionnement" %}{% endblock %}
 {% block content %}
-<div class="panel">
-    <div class="toolbar">
+<div class="page-header">
+    <div class="page-header__left">
+        <p class="page-header__sub">{% trans "Automatisez le réapprovisionnement en définissant des seuils par produit" %}</p>
+    </div>
+    <div class="page-header__right">
         <a href="{% url 'inventory:reorder_dashboard' %}" class="btn btn--ghost">← {% trans "Retour" %}</a>
         <a href="{% url 'inventory:reorder_rule_create' %}" class="btn btn--primary">+ {% trans "Nouvelle règle" %}</a>
     </div>
-
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>{% trans "Produit" %}</th>
-                <th>{% trans "Stock" %}</th>
-                <th>{% trans "Min / Cible" %}</th>
-                <th>{% trans "Fournisseur" %}</th>
-                <th>{% trans "Délai" %}</th>
-                <th>{% trans "Statut" %}</th>
-                <th>{% trans "Actions" %}</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for r in regles %}
-            <tr class="data-row {% if r.doit_reapprovisionner %}data-row--alert{% endif %}">
-                <td><strong>{{ r.produit.nom }}</strong></td>
-                <td>{{ r.produit.quantite_totale }}</td>
-                <td>{{ r.quantite_min }} / {{ r.quantite_cible }}</td>
-                <td>{{ r.fournisseur.nom|default:"-" }}</td>
-                <td>{{ r.delai_livraison_jours }} {% trans "jours" %}</td>
-                <td>
-                    {% if r.doit_reapprovisionner %}
-                    <span class="badge badge--warn">⚠ {% trans "Alerte" %}</span>
-                    {% elif r.actif %}
-                    <span class="badge badge--entree">{% trans "OK" %}</span>
-                    {% else %}
-                    <span class="badge badge--sortie">{% trans "Inactif" %}</span>
-                    {% endif %}
-                </td>
-                <td class="data-row__actions">
-                    <a href="{% url 'inventory:reorder_rule_edit' r.pk %}" class="icon-btn">✎</a>
-                    <a href="{% url 'inventory:purchase_order_from_rule' r.pk %}" class="icon-btn" title="{% trans 'Commander' %}">📦</a>
-                    <a href="{% url 'inventory:reorder_rule_delete' r.pk %}" class="icon-btn icon-btn--danger">🗑</a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="7" class="empty-state">{% trans "Aucune règle définie." %}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
 </div>
+
+<div class="panel">
+    <div class="panel__header">
+        <h3 class="panel__title">📐 {% trans "Règles actives" %}</h3>
+    </div>
+
+    {% if regles %}
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>{% trans "Produit" %}</th>
+                    <th>{% trans "Stock actuel" %}</th>
+                    <th>{% trans "Min" %}</th>
+                    <th>{% trans "Cible" %}</th>
+                    <th>{% trans "Fournisseur" %}</th>
+                    <th>{% trans "Entrepôt" %}</th>
+                    <th>{% trans "Délai" %}</th>
+                    <th>{% trans "État" %}</th>
+                    <th class="text-right">{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in regles %}
+                <tr class="data-row {% if r.doit_reapprovisionner %}data-row--alert{% endif %}">
+                    <td>
+                        <strong>{{ r.produit.nom }}</strong><br>
+                        <small class="muted">{{ r.produit.reference }}</small>
+                    </td>
+                    <td>
+                        <span class="badge badge--{% if r.produit.quantite_totale == 0 %}danger{% elif r.produit.quantite_totale <= r.quantite_min %}warn{% else %}success{% endif %}">
+                            {{ r.produit.quantite_totale }} {{ r.produit.unite }}
+                        </span>
+                    </td>
+                    <td>{{ r.quantite_min }}</td>
+                    <td>{{ r.quantite_cible }}</td>
+                    <td>
+                        {% if r.fournisseur %}
+                            <span class="supplier-tag">{{ r.fournisseur.nom }}</span>
+                        {% else %}
+                            <span class="badge badge--muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ r.entrepot.nom|default:"—" }}</td>
+                    <td>{{ r.delai_livraison_jours }} j</td>
+                    <td>
+                        {% if r.doit_reapprovisionner %}
+                            <span class="badge badge--warn">⚠ {% trans "Alerte" %}</span>
+                        {% elif r.actif %}
+                            <span class="badge badge--success">✓ OK</span>
+                        {% else %}
+                            <span class="badge badge--muted">{% trans "Inactif" %}</span>
+                        {% endif %}
+                    </td>
+                    <td class="data-row__actions">
+                        <a href="{% url 'inventory:reorder_rule_edit' r.pk %}" class="btn btn--ghost btn--sm">✎</a>
+                        {% if r.fournisseur %}
+                        <a href="{% url 'inventory:purchase_order_from_rule' r.pk %}" class="btn btn--primary btn--sm" title="{% trans 'Commander' %}">🚚</a>
+                        {% endif %}
+                        <a href="{% url 'inventory:reorder_rule_delete' r.pk %}" class="btn btn--danger btn--sm">🗑</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state__icon">📐</div>
+        <p>{% trans "Aucune règle définie. Créez votre première règle pour automatiser le réapprovisionnement." %}</p>
+        <a href="{% url 'inventory:reorder_rule_create' %}" class="btn btn--primary">+ {% trans "Créer une règle" %}</a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1.25rem 1.5rem;
+    background: var(--color-surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
+}
+.page-header__sub { margin: 0; color: var(--color-text-muted); font-size: 0.9rem; }
+.page-header__right { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+.panel__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+.panel__title { margin: 0; }
+
+.data-row--alert td { background: rgba(245, 165, 36, 0.06); }
+.data-row__actions { display: flex; gap: 0.4rem; justify-content: flex-end; }
+.supplier-tag {
+    background: rgba(79, 94, 255, 0.1);
+    color: #4f5eff;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+.badge--success { background: rgba(23, 166, 115, 0.15); color: #17a673; }
+.badge--danger { background: rgba(229, 72, 77, 0.15); color: #b91c1c; }
+.badge--warn { background: rgba(245, 165, 36, 0.15); color: #92400e; }
+.badge--muted { background: var(--color-border); color: var(--color-text-muted); }
+.muted { color: var(--color-text-muted); font-size: 0.75rem; }
+</style>
 {% endblock %}
