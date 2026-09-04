@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Fournisseurs" %}{% endblock %}
+{% block page_title %}{% trans "Fournisseurs" %}{% endblock %}
+{% block content %}
+<div class="panel">
+    <div class="toolbar">
+        <a href="{% url 'inventory:reorder_dashboard' %}" class="btn btn--ghost">← {% trans "Retour" %}</a>
+        <a href="{% url 'inventory:supplier_create' %}" class="btn btn--primary">+ {% trans "Ajouter un fournisseur" %}</a>
+    </div>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>{% trans "Nom" %}</th>
+                <th>{% trans "Contact" %}</th>
+                <th>{% trans "Email" %}</th>
+                <th>{% trans "Téléphone" %}</th>
+                <th>{% trans "Statut" %}</th>
+                <th>{% trans "Actions" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in fournisseurs %}
+            <tr class="data-row">
+                <td><strong>{{ s.nom }}</strong></td>
+                <td>{{ s.contact|default:"-" }}</td>
+                <td>{{ s.email|default:"-" }}</td>
+                <td>{{ s.telephone|default:"-" }}</td>
+                <td>
+                    {% if s.actif %}
+                    <span class="badge badge--entree">{% trans "Actif" %}</span>
+                    {% else %}
+                    <span class="badge badge--sortie">{% trans "Inactif" %}</span>
+                    {% endif %}
+                </td>
+                <td class="data-row__actions">
+                    <a href="{% url 'inventory:supplier_edit' s.pk %}" class="icon-btn">✎</a>
+                    <a href="{% url 'inventory:supplier_delete' s.pk %}" class="icon-btn icon-btn--danger">🗑</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="empty-state">{% trans "Aucun fournisseur." %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

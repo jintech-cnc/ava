@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Règles de réapprovisionnement" %}{% endblock %}
+{% block page_title %}{% trans "Règles de réapprovisionnement" %}{% endblock %}
+{% block content %}
+<div class="panel">
+    <div class="toolbar">
+        <a href="{% url 'inventory:reorder_dashboard' %}" class="btn btn--ghost">← {% trans "Retour" %}</a>
+        <a href="{% url 'inventory:reorder_rule_create' %}" class="btn btn--primary">+ {% trans "Nouvelle règle" %}</a>
+    </div>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>{% trans "Produit" %}</th>
+                <th>{% trans "Stock" %}</th>
+                <th>{% trans "Min / Cible" %}</th>
+                <th>{% trans "Fournisseur" %}</th>
+                <th>{% trans "Délai" %}</th>
+                <th>{% trans "Statut" %}</th>
+                <th>{% trans "Actions" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in regles %}
+            <tr class="data-row {% if r.doit_reapprovisionner %}data-row--alert{% endif %}">
+                <td><strong>{{ r.produit.nom }}</strong></td>
+                <td>{{ r.produit.quantite_totale }}</td>
+                <td>{{ r.quantite_min }} / {{ r.quantite_cible }}</td>
+                <td>{{ r.fournisseur.nom|default:"-" }}</td>
+                <td>{{ r.delai_livraison_jours }} {% trans "jours" %}</td>
+                <td>
+                    {% if r.doit_reapprovisionner %}
+                    <span class="badge badge--warn">⚠ {% trans "Alerte" %}</span>
+                    {% elif r.actif %}
+                    <span class="badge badge--entree">{% trans "OK" %}</span>
+                    {% else %}
+                    <span class="badge badge--sortie">{% trans "Inactif" %}</span>
+                    {% endif %}
+                </td>
+                <td class="data-row__actions">
+                    <a href="{% url 'inventory:reorder_rule_edit' r.pk %}" class="icon-btn">✎</a>
+                    <a href="{% url 'inventory:purchase_order_from_rule' r.pk %}" class="icon-btn" title="{% trans 'Commander' %}">📦</a>
+                    <a href="{% url 'inventory:reorder_rule_delete' r.pk %}" class="icon-btn icon-btn--danger">🗑</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="empty-state">{% trans "Aucune règle définie." %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Réapprovisionnement" %}{% endblock %}
+{% block page_title %}{% trans "Réapprovisionnement" %}{% endblock %}
+{% block content %}
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-card__icon">📋</div>
+        <div class="stat-card__value">{{ total_regles }}</div>
+        <div class="stat-card__label">{% trans "Règles actives" %}</div>
+    </div>
+    <div class="stat-card stat-card--warn">
+        <div class="stat-card__icon">⚠</div>
+        <div class="stat-card__value">{{ total_alertes }}</div>
+        <div class="stat-card__label">{% trans "Alertes de stock" %}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card__icon">🚚</div>
+        <div class="stat-card__value">{{ bons_commande|length }}</div>
+        <div class="stat-card__label">{% trans "Bons de commande récents" %}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card__icon">🏢</div>
+        <div class="stat-card__value">{{ fournisseurs|length }}</div>
+        <div class="stat-card__label">{% trans "Fournisseurs actifs" %}</div>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="toolbar">
+        <h3 class="panel__title" style="margin: 0;">{% trans "Actions rapides" %}</h3>
+    </div>
+    <div class="panel-grid">
+        <a href="{% url 'inventory:supplier_create' %}" class="admin-card">
+            <div class="admin-card__icon">🏢</div>
+            <div class="admin-card__info">
+                <h3>{% trans "Ajouter un fournisseur" %}</h3>
+                <p>{% trans "Enregistrer un nouveau fournisseur pour les achats." %}</p>
+            </div>
+        </a>
+        <a href="{% url 'inventory:reorder_rule_create' %}" class="admin-card">
+            <div class="admin-card__icon">📐</div>
+            <div class="admin-card__info">
+                <h3>{% trans "Nouvelle règle" %}</h3>
+                <p>{% trans "Définir les seuils de réapprovisionnement d'un produit." %}</p>
+            </div>
+        </a>
+        <a href="{% url 'inventory:purchase_order_create' %}" class="admin-card">
+            <div class="admin-card__icon">📦</div>
+            <div class="admin-card__info">
+                <h3>{% trans "Nouveau bon de commande" %}</h3>
+                <p>{% trans "Créer un bon de commande fournisseur manuellement." %}</p>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="panel">
+    <h3 class="panel__title">⚠ {% trans "Alertes de réapprovisionnement" %}</h3>
+    {% if alertes %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>{% trans "Produit" %}</th>
+                <th>{% trans "Stock actuel" %}</th>
+                <th>{% trans "Seuil" %}</th>
+                <th>{% trans "Cible" %}</th>
+                <th>{% trans "À commander" %}</th>
+                <th>{% trans "Fournisseur" %}</th>
+                <th>{% trans "Actions" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in alertes %}
+            <tr class="data-row data-row--alert">
+                <td><strong>{{ r.produit }}</strong></td>
+                <td>{{ r.produit.quantite_totale }} {{ r.produit.unite }}</td>
+                <td>{{ r.quantite_min }}</td>
+                <td>{{ r.quantite_cible }}</td>
+                <td><strong>{{ r.quantite_a_commander }}</strong></td>
+                <td>
+                    {% if r.fournisseur %}
+                    {{ r.fournisseur.nom }}
+                    {% else %}
+                    <span class="badge badge--warn">{% trans "Aucun" %}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if r.fournisseur %}
+                    <a href="{% url 'inventory:purchase_order_from_rule' r.pk %}" class="btn btn--primary btn--sm">
+                        {% trans "Commander" %}
+                    </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">✅ {% trans "Aucune alerte. Tous les stocks sont OK." %}</div>
+    {% endif %}
+</div>
+
+<div class="panel">
+    <h3 class="panel__title">{% trans "Bons de commande récents" %}</h3>
+    {% if bons_commande %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>{% trans "Référence" %}</th>
+                <th>{% trans "Fournisseur" %}</th>
+                <th>{% trans "Statut" %}</th>
+                <th>{% trans "Date" %}</th>
+                <th>{% trans "Actions" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for bc in bons_commande %}
+            <tr class="data-row">
+                <td><strong>{{ bc.reference }}</strong></td>
+                <td>{{ bc.fournisseur.nom }}</td>
+                <td><span class="badge">{{ bc.get_statut_display }}</span></td>
+                <td>{{ bc.cree_le|date:"d/m/Y" }}</td>
+                <td>
+                    <a href="{% url 'inventory:purchase_order_detail' bc.pk %}" class="icon-btn">👁</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">{% trans "Aucun bon de commande." %}</div>
+    {% endif %}
+</div>
+{% endblock %}

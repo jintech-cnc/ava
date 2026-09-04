@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% block title %}{% trans "Bon de commande" %} {{ bon.reference }}{% endblock %}
+{% block page_title %}{% trans "Détails du bon de commande" %}{% endblock %}
+{% block content %}
+<div class="toolbar">
+    <a href="{% url 'inventory:purchase_order_list' %}" class="btn btn--ghost">← {% trans "Retour à la liste" %}</a>
+    
+    {% if bon.statut == 'brouillon' %}
+    <form action="{% url 'inventory:purchase_order_status' bon.pk 'commande' %}" method="post" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn--primary">{% trans "Confirmer la commande" %}</button>
+    </form>
+    {% endif %}
+
+    {% if bon.statut == 'commande' or bon.statut == 'partielle' %}
+    <button class="btn btn--primary" @click="$refs.receiveModal.showModal()">{% trans "Réceptionner les articles" %}</button>
+    {% endif %}
+</div>
+
+<div class="panel">
+    <div class="detail-grid">
+        <div>
+            <label class="field-label">{% trans "Référence" %}</label>
+            <p>{{ bon.reference }}</p>
+        </div>
+        <div>
+            <label class="field-label">{% trans "Statut" %}</label>
+            <p><span class="badge">{{ bon.get_statut_display }}</span></p>
+        </div>
+        <div>
+            <label class="field-label">{% trans "Fournisseur" %}</label>
+            <p><strong>{{ bon.fournisseur.nom }}</strong></p>
+        </div>
+        <div>
+            <label class="field-label">{% trans "Entrepôt de destination" %}</label>
+            <p>{{ bon.entrepot.nom|default:"-" }}</p>
+        </div>
+        <div>
+            <label class="field-label">{% trans "Date de commande" %}</label>
+            <p>{{ bon.date_commande|default:"-" }}</p>
+        </div>
+        <div>
+            <label class="field-label">{% trans "Livraison prévue" %}</label>
+            <p>{{ bon.date_livraison_prevue|default:"-" }}</p>
+        </div>
+    </div>
+</div>
+
+<div class="panel">
+    <h3 class="panel__title">{% trans "Articles commandés" %}</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>{% trans "Produit" %}</th>
+                <th class="text-right">{% trans "Qté commandée" %}</th>
+                <th class="text-right">{% trans "Qté reçue" %}</th>
+                <th class="text-right">{% trans "Prix unitaire" %}</th>
+                <th class="text-right">{% trans "Sous-total" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ligne in bon.lignes.all %}
+            <tr>
+                <td>{{ ligne.produit.nom }}</td>
+                <td class="text-right">{{ ligne.quantite_commandee }}</td>
+                <td class="text-right">{{ ligne.quantite_recue }}</td>
+                <td class="text-right">{{ ligne.prix_unitaire|floatformat:2 }} €</td>
+                <td class="text-right"><strong>{{ ligne.montant_ligne|floatformat:2 }} €</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="4" class="text-right"><strong>{% trans "TOTAL" %}</strong></td>
+                <td class="text-right"><strong>{{ bon.montant_total|floatformat:2 }} €</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+{% if bon.statut == 'commande' or bon.statut == 'partielle' %}
+<dialog x-ref="receiveModal" class="modal-panel" style="padding:0; border:none; border-radius:16px;">
+    <div class="modal-panel__header">
+        <h2>{% trans "Réception de marchandise" %}</h2>
+        <button type="button" class="icon-btn" @click="$refs.receiveModal.close()">✕</button>
+    </div>
+    <form action="{% url 'inventory:purchase_order_receive' bon.pk %}" method="post">
+        {% csrf_token %}
+        <div class="modal-panel__body" style="display:block;">
+            <p>{% trans "Veuillez indiquer les quantités reçues pour chaque article." %}</p>
+            <table class="data-table" style="margin-top:15px;">
+                <thead>
+                    <tr>
+                        <th>{% trans "Produit" %}</th>
+                        <th>{% trans "Reste à recevoir" %}</th>
+                        <th width="120">{% trans "Qté reçue" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ligne in bon.lignes.all %}
+                    <tr>
+                        <td>{{ ligne.produit.nom }}</td>
+                        <td>{{ ligne.quantite_commandee|add:ligne.quantite_recue|add:"-0" }}</td>
+                        <td>
+                            <input type="number" name="qte_{{ ligne.pk }}" class="input" 
+                                   value="{{ ligne.quantite_commandee }}" min="0">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="modal-panel__footer">
+            <button type="button" class="btn btn--ghost" @click="$refs.receiveModal.close()">{% trans "Annuler" %}</button>
+            <button type="submit" class="btn btn--primary">{% trans "Valider la réception" %}</button>
+        </div>
+    </form>
+</dialog>
+{% endif %}
+{% endblock %}

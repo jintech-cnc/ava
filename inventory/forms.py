@@ -1,7 +1,8 @@
 from django import forms
+from django.forms import inlineformset_factory
 from django.utils.translation import gettext_lazy as _
 
-from .models import Product, StockMovement, Category, Warehouse
+from .models import Product, StockMovement, Category, Warehouse, Supplier, ReorderRule, PurchaseOrder, PurchaseOrderItem
 
 
 class ProductForm(forms.ModelForm):
@@ -57,3 +58,67 @@ class WarehouseForm(forms.ModelForm):
             'emplacement': forms.TextInput(attrs={'class': 'input'}),
             'responsable': forms.Select(attrs={'class': 'input'}),
         }
+
+
+# ==========================================
+# Formulaires de réapprovisionnement
+# ==========================================
+
+class SupplierForm(forms.ModelForm):
+    class Meta:
+        model = Supplier
+        fields = ['nom', 'contact', 'email', 'telephone', 'adresse', 'notes', 'actif']
+        widgets = {
+            'nom': forms.TextInput(attrs={'class': 'input'}),
+            'contact': forms.TextInput(attrs={'class': 'input'}),
+            'email': forms.EmailInput(attrs={'class': 'input'}),
+            'telephone': forms.TextInput(attrs={'class': 'input'}),
+            'adresse': forms.Textarea(attrs={'class': 'input', 'rows': 2}),
+            'notes': forms.Textarea(attrs={'class': 'input', 'rows': 2}),
+            'actif': forms.CheckboxInput(attrs={'class': 'checkbox'}),
+        }
+
+
+class ReorderRuleForm(forms.ModelForm):
+    class Meta:
+        model = ReorderRule
+        fields = ['produit', 'fournisseur', 'entrepot', 'quantite_min', 'quantite_cible', 'delai_livraison_jours', 'actif']
+        widgets = {
+            'produit': forms.Select(attrs={'class': 'input'}),
+            'fournisseur': forms.Select(attrs={'class': 'input'}),
+            'entrepot': forms.Select(attrs={'class': 'input'}),
+            'quantite_min': forms.NumberInput(attrs={'class': 'input', 'min': 0}),
+            'quantite_cible': forms.NumberInput(attrs={'class': 'input', 'min': 0}),
+            'delai_livraison_jours': forms.NumberInput(attrs={'class': 'input', 'min': 1}),
+            'actif': forms.CheckboxInput(attrs={'class': 'checkbox'}),
+        }
+
+
+class PurchaseOrderForm(forms.ModelForm):
+    class Meta:
+        model = PurchaseOrder
+        fields = ['fournisseur', 'entrepot', 'date_commande', 'date_livraison_prevue', 'notes']
+        widgets = {
+            'fournisseur': forms.Select(attrs={'class': 'input'}),
+            'entrepot': forms.Select(attrs={'class': 'input'}),
+            'date_commande': forms.DateInput(attrs={'class': 'input', 'type': 'date'}),
+            'date_livraison_prevue': forms.DateInput(attrs={'class': 'input', 'type': 'date'}),
+            'notes': forms.Textarea(attrs={'class': 'input', 'rows': 2}),
+        }
+
+
+class PurchaseOrderItemForm(forms.ModelForm):
+    class Meta:
+        model = PurchaseOrderItem
+        fields = ['produit', 'quantite_commandee', 'prix_unitaire']
+        widgets = {
+            'produit': forms.Select(attrs={'class': 'input'}),
+            'quantite_commandee': forms.NumberInput(attrs={'class': 'input', 'min': 1}),
+            'prix_unitaire': forms.NumberInput(attrs={'class': 'input', 'step': '0.01'}),
+        }
+
+
+PurchaseOrderItemFormSet = inlineformset_factory(
+    PurchaseOrder, PurchaseOrderItem, form=PurchaseOrderItemForm,
+    extra=3, can_delete=True,
+)

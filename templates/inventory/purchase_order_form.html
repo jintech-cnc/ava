@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Créer un bon de commande" %}{% endblock %}
+{% block page_title %}{% trans "Nouveau bon de commande" %}{% endblock %}
+{% block content %}
+<div class="panel panel--form">
+    <div class="toolbar" style="margin-bottom: 20px;">
+        <a href="{% url 'inventory:purchase_order_list' %}" class="btn btn--ghost">← {% trans "Retour" %}</a>
+    </div>
+
+    <form method="post" class="form-grid">
+        {% csrf_token %}
+        
+        <div class="field">
+            <label class="field-label field-label--required" for="id_fournisseur">{% trans "Fournisseur" %} *</label>
+            {{ form.fournisseur }}
+            {% if form.fournisseur.errors %}
+                {% for error in form.fournisseur.errors %}<span class="field-error">{{ error|striptags }}</span>{% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="field">
+            <label class="field-label" for="id_entrepot">{% trans "Entrepôt de destination" %}</label>
+            {{ form.entrepot }}
+        </div>
+
+        <div class="field">
+            <label class="field-label" for="id_date_commande">{% trans "Date de commande" %}</label>
+            {{ form.date_commande }}
+        </div>
+
+        <div class="field">
+            <label class="field-label" for="id_date_livraison_prevue">{% trans "Livraison prévue" %}</label>
+            {{ form.date_livraison_prevue }}
+        </div>
+
+        <div class="field field--full">
+            <label class="field-label" for="id_notes">{% trans "Notes" %}</label>
+            {{ form.notes }}
+        </div>
+
+        <div class="field--full">
+            <h3>{% trans "Articles à commander" %}</h3>
+            <table class="data-table">
+                {{ formset.management_form }}
+                <thead>
+                    <tr>
+                        <th>{% trans "Produit" %}</th>
+                        <th width="120">{% trans "Qté" %}</th>
+                        <th width="140">{% trans "Prix unitaire" %}</th>
+                        <th width="40"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for form_line in formset %}
+                    <tr>
+                        {% for hidden in form_line.hidden_fields %}{{ hidden }}{% endfor %}
+                        <td>{{ form_line.produit }}</td>
+                        <td>{{ form_line.quantite_commandee }}</td>
+                        <td>{{ form_line.prix_unitaire }}</td>
+                        <td>{% if form_line.DELETE %}{{ form_line.DELETE }}{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="field--full">
+            <button type="submit" class="btn btn--primary">{% trans "Créer le bon de commande" %}</button>
+            <a href="{% url 'inventory:purchase_order_list' %}" class="btn btn--ghost">{% trans "Annuler" %}</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

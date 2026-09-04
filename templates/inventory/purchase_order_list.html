@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Bons de commande" %}{% endblock %}
+{% block page_title %}{% trans "Bons de commande fournisseur" %}{% endblock %}
+{% block content %}
+<div class="panel">
+    <div class="toolbar">
+        <a href="{% url 'inventory:reorder_dashboard' %}" class="btn btn--ghost">← {% trans "Retour" %}</a>
+        <a href="{% url 'inventory:purchase_order_create' %}" class="btn btn--primary">+ {% trans "Créer un bon de commande" %}</a>
+    </div>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>{% trans "Référence" %}</th>
+                <th>{% trans "Fournisseur" %}</th>
+                <th>{% trans "Entrepôt de dest." %}</th>
+                <th>{% trans "Statut" %}</th>
+                <th>{% trans "Date commande" %}</th>
+                <th>{% trans "Total" %}</th>
+                <th>{% trans "Actions" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for bc in bons_commande %}
+            <tr class="data-row">
+                <td><strong>{{ bc.reference }}</strong></td>
+                <td>{{ bc.fournisseur.nom }}</td>
+                <td>{{ bc.entrepot.nom|default:"-" }}</td>
+                <td><span class="badge">{{ bc.get_statut_display }}</span></td>
+                <td>{{ bc.date_commande|default:bc.cree_le|date:"d/m/Y" }}</td>
+                <td><strong>{{ bc.montant_total|floatformat:2 }} €</strong></td>
+                <td>
+                    <a href="{% url 'inventory:purchase_order_detail' bc.pk %}" class="icon-btn">👁</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="empty-state">{% trans "Aucun bon de commande." %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
