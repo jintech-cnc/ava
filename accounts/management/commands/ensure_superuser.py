@@ -1,19 +1,18 @@
 """
-Crée un superuser depuis les variables d'environnement (pour Render).
+Crée/mets à jour un superuser depuis les variables d'environnement (pour Render).
+
+Totalement idempotent : aucun create_superuser, manipulation directe du modèle User.
 
 Variables d'environnement lues :
-  DJANGO_SUPERUSER_USERNAME  (obligatoire)
-  DJANGO_SUPERUSER_EMAIL     (optionnel)
-  DJANGO_SUPERUSER_PASSWORD  (obligatoire)
+  DJANGO_SUPERUSER_USERNAME    (obligatoire)
+  DJANGO_SUPERUSER_EMAIL       (optionnel)
+  DJANGO_SUPERUSER_PASSWORD    (obligatoire)
   DJANGO_SUPERUSER_FIRST_NAME  (optionnel)
   DJANGO_SUPERUSER_LAST_NAME   (optionnel)
-
-Totalement idempotent : gère le cas où l'user existe déjà (race condition,
-build rerun, etc.).
 """
 import os
 from django.contrib.auth import get_user_model
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
@@ -34,60 +33,41 @@ class Command(BaseCommand):
             ))
             return
 
-        # --- user existe déjà : on met à jour --------------------------------
-        if User.objects.filter(username=username).exists():
-            user = User.objects.get(username=username)
-            updated = False
-            if not user.is_superuser or not user.is_staff:
-                user.is_superuser = True
-                user.is_staff = True
-                updated = True
-            if email and user.email != email:
-                user.email = email
-                updated = True
-            if first_name and user.first_name != first_name:
-                user.first_name = first_name
-                updated = True
-            if last_name and user.last_name != last_name:
-                user.last_name = last_name
-                updated = True
-            if password and not user.has_usable_password():
-                user.set_password(password)
-                updated = True
-            if updated:
-                user.save()
-                self.stdout.write(self.style.SUCCESS(f"Superuser '{username}' mis à jour."))
-            else:
-                self.stdout.write(f"Superuser '{username}' déjà présent — rien à faire.")
-            self._update_profile(user)
-            return
+        # On utilise get_or_create pour éviter tout race condition avec create_superuser
+        user, created = User.objects.get_or_create(
+            username=username,
+            defaults={
+                'email': email,
+                'first_name': first_name,
+                'last_name': last_name,
+                'is_staff': True,
+                'is_superuser': True,
+            }
+        )
 
-        # --- user n'existe pas : on crée ------------------------------------
-        try:
-            user = User.objects.create_superuser(
-                username=username,
-                email=email,
-                password=password,
-                first_name=first_name,
-                last_name=last_name,
-            )
-        except CommandError:
-            # Race condition : un autre processus l'a créé entre-temps
-            user = User.objects.get(username=username)
-            self.stdout.write(self.style.WARNING(
-                f"Superuser '{username}' existait déjà (race) — mise à jour."
-            ))
-            # Met à jour les champs au cas où
-            user.is_superuser = True
-            user.is_staff = True
-            user.email = email or user.email
-            user.first_name = first_name or user.first_name
-            user.last_name = last_name or user.last_name
-            user.set_password(password)
-            user.save()
+        # Assure les flags superuser/staff quoi qu'il arrive
+        user.is_staff = True
+        user.is_superuser = True
 
+        # Met à jour les champs optionnels si fournis
+        if email:
+            user.email = email
+        if first_name:
+            user.first_name = first_name
+        if last_name:
+            user.last_name = last_name
+
+        # Met toujours le mot de passe (nouveau build = on peut avoir changé le MDP)
+        user.set_password(password)
+        user.save()
+
+        # Profil ADMIN
         self._update_profile(user)
-        self.stdout.write(self.style.SUCCESS(f"Superuser '{username}' créé avec succès."))
+
+        if created:
+            self.stdout.write(self.style.SUCCESS(f"Superuser '{username}' créé avec succès."))
+        else:
+            self.stdout.write(f"Superuser '{username}' déjà existant — mis à jour.")
 
     def _update_profile(self, user):
         """Assure que le profil existe et a le rôle ADMIN."""
