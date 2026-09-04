@@ -1,2 +1,7 @@
 Django>=5.0,<5.3
 gunicorn
+reportlab>=4.0.0
+openpyxl>=3.1.0
+django-import-export>=4.0.0
+django-environ>=0.11.0
+django-storages>=1.14.0

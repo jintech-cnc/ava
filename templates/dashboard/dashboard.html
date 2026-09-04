@@ -44,6 +44,9 @@
             </li>
             {% endfor %}
         </ul>
+        <a href="{% url 'inventory:requisition_preview' %}" class="btn btn--primary btn--block" style="margin-top: 1rem;">
+            ✎ {% trans "Générer la fiche de réquisition" %}
+        </a>
         {% else %}
         <p class="empty-state">{% trans "Aucune alerte pour le moment. 👍" %}</p>
         {% endif %}

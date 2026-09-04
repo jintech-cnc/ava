@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Entreprises" %}{% endblock %}
+{% block page_title %}{% trans "Entreprises" %}{% endblock %}
+{% block content %}
+<div class="panel">
+    <div class="toolbar">
+        <h2 class="panel__title">{% trans "Profils d'entreprise" %}</h2>
+        <button class="btn btn--primary" hx-get="{% url 'inventory:company_create' %}" hx-target="#modal-region" hx-swap="innerHTML">
+            + {% trans "Nouvelle entreprise" %}
+        </button>
+    </div>
+
+    {% if companies %}
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>{% trans "Logo" %}</th>
+                    <th>{% trans "Nom" %}</th>
+                    <th>{% trans "Slogan" %}</th>
+                    <th>{% trans "Téléphone" %}</th>
+                    <th>{% trans "Email" %}</th>
+                    <th>{% trans "RCCM" %}</th>
+                    <th>{% trans "Devise" %}</th>
+                    <th>{% trans "État" %}</th>
+                    <th>{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in companies %}
+                <tr>
+                    <td>
+                        {% if c.logo %}
+                            <img src="{{ c.logo.url }}" alt="{{ c.nom }}" class="company-thumb">
+                        {% else %}
+                            <span class="company-thumb company-thumb--empty">{{ c.nom|slice:":1"|upper }}</span>
+                        {% endif %}
+                    </td>
+                    <td><strong>{{ c.nom }}</strong></td>
+                    <td>{{ c.slogan|default:"—" }}</td>
+                    <td>{{ c.telephone|default:"—" }}</td>
+                    <td>{{ c.email|default:"—" }}</td>
+                    <td>{{ c.rccm|default:"—" }}</td>
+                    <td><span class="badge">{{ c.devise }}</span></td>
+                    <td>
+                        {% if c.actif %}
+                            <span class="badge badge--success">{% trans "Actif" %}</span>
+                        {% else %}
+                            <span class="badge badge--muted">{% trans "Inactif" %}</span>
+                        {% endif %}
+                    </td>
+                    <td class="actions">
+                        <button class="btn btn--ghost" hx-get="{% url 'inventory:company_edit' c.pk %}" hx-target="#modal-region" hx-swap="innerHTML">{% trans "Modifier" %}</button>
+                        <button class="btn btn--danger" hx-get="{% url 'inventory:company_delete' c.pk %}" hx-target="#modal-region" hx-swap="innerHTML">{% trans "Supprimer" %}</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="empty-state">{% trans "Aucune entreprise configurée. Créez votre première entreprise pour générer des documents professionnels." %}</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -4,6 +4,47 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 
+class Company(models.Model):
+    """Profil d'entreprise — chaque entreprise a ses propres infos sur les documents."""
+    nom = models.CharField(_('nom de l\'entreprise'), max_length=200)
+    slogan = models.CharField(_('slogan'), max_length=200, blank=True)
+    logo = models.ImageField(_('logo'), upload_to='company/', blank=True, null=True)
+    adresse = models.TextField(_('adresse'), blank=True)
+    telephone = models.CharField(_('téléphone'), max_length=50, blank=True)
+    email = models.EmailField(_('email'), blank=True)
+    site_web = models.URLField(_('site web'), blank=True)
+    # Immatriculations
+    rccm = models.CharField(_('RCCM'), max_length=50, blank=True, help_text=_('Registre du Commerce et du Crédit Mobilier'))
+    id_national = models.CharField(_('ID National / NIF'), max_length=50, blank=True)
+    numero_impot = models.CharField(_('Numéro Impôt'), max_length=50, blank=True)
+    # Config
+    devise = models.CharField(_('devise'), max_length=10, default='FC')
+    separateur_milliers = models.CharField(_('séparateur de milliers'), max_length=1, default=' ')
+    prefixe_symbole = models.BooleanField(_('symbole avant le montant'), default=True)
+    mentions_footer = models.TextField(_('mentions en pied de page'), blank=True, help_text=_('Texte affiché en bas de chaque document PDF'))
+    actif = models.BooleanField(_('actif'), default=True)
+    cree_le = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _('Entreprise')
+        verbose_name_plural = _('Entreprises')
+        ordering = ['nom']
+
+    def __str__(self):
+        return self.nom
+
+    def format_montant(self, montant):
+        """Formate un montant avec la devise configurée."""
+        try:
+            montant_float = float(montant)
+            formatted = f"{montant_float:,.2f}".replace(',', 'X').replace('.', ',').replace('X', self.separateur_milliers)
+        except (ValueError, TypeError):
+            formatted = str(montant)
+        prefix = f"{self.devise} " if self.prefixe_symbole else ""
+        suffix = f" {self.devise}" if not self.prefixe_symbole else ""
+        return f"{prefix}{formatted}{suffix}"
+
+
 class Category(models.Model):
     nom = models.CharField(_('nom'), max_length=100, unique=True)
     description = models.TextField(_('description'), blank=True)

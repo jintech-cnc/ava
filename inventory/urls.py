@@ -37,4 +37,23 @@ urlpatterns = [
     path('reapprovisionnement/commandes/<int:pk>/', views.purchase_order_detail, name='purchase_order_detail'),
     path('reapprovisionnement/commandes/<int:pk>/statut/<str:statut>/', views.purchase_order_update_status, name='purchase_order_status'),
     path('reapprovisionnement/commandes/<int:pk>/receptionner/', views.purchase_order_receive, name='purchase_order_receive'),
+    # Fiche de réquisition
+    path('reapprovisionnement/requisition/', views.requisition_preview, name='requisition_preview'),
+    path('reapprovisionnement/requisition/pdf/', views.requisition_pdf, name='requisition_pdf'),
+    path('reapprovisionnement/requisition/excel/', views.requisition_excel, name='requisition_excel'),
+    path('reapprovisionnement/requisition/creer-bc/', views.requisition_create_po, name='requisition_create_po'),
+    # Exports PDF/Excel
+    path('exports/produits/pdf/', views.export_products_pdf, name='export_products_pdf'),
+    path('exports/produits/excel/', views.export_products_excel, name='export_products_excel'),
+    path('exports/mouvements/pdf/', views.export_movements_pdf, name='export_movements_pdf'),
+    path('exports/mouvements/excel/', views.export_movements_excel, name='export_movements_excel'),
+    path('exports/commandes/<int:pk>/pdf/', views.export_order_pdf, name='export_order_pdf'),
+    path('exports/commandes/<int:pk>/excel/', views.export_order_excel, name='export_order_excel'),
+    path('exports/bc/<int:pk>/pdf/', views.export_purchase_order_pdf, name='export_po_pdf'),
+    path('exports/bc/<int:pk>/excel/', views.export_purchase_order_excel, name='export_po_excel'),
+    # Entreprises
+    path('entreprises/', views.company_list, name='company_list'),
+    path('entreprises/nouveau/', views.company_form, name='company_create'),
+    path('entreprises/<int:pk>/modifier/', views.company_form, name='company_edit'),
+    path('entreprises/<int:pk>/supprimer/', views.company_delete, name='company_delete'),
 ]

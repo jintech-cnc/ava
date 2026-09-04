@@ -14,6 +14,10 @@ class Profile(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile'
     )
+    company = models.ForeignKey(
+        'inventory.Company', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='profils', verbose_name=_('entreprise'),
+    )
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.STAFF)
     telephone = models.CharField(max_length=30, blank=True)
     langue_preferee = models.CharField(

@@ -2,7 +2,7 @@ from django import forms
 from django.forms import inlineformset_factory
 from django.utils.translation import gettext_lazy as _
 
-from .models import Product, StockMovement, Category, Warehouse, Supplier, ReorderRule, PurchaseOrder, PurchaseOrderItem
+from .models import Product, StockMovement, Category, Warehouse, Supplier, ReorderRule, PurchaseOrder, PurchaseOrderItem, Company
 
 
 class ProductForm(forms.ModelForm):
@@ -122,3 +122,30 @@ PurchaseOrderItemFormSet = inlineformset_factory(
     PurchaseOrder, PurchaseOrderItem, form=PurchaseOrderItemForm,
     extra=3, can_delete=True,
 )
+
+
+class CompanyForm(forms.ModelForm):
+    class Meta:
+        model = Company
+        fields = [
+            'nom', 'slogan', 'logo', 'adresse', 'telephone', 'email', 'site_web',
+            'rccm', 'id_national', 'numero_impot',
+            'devise', 'separateur_milliers', 'prefixe_symbole', 'mentions_footer', 'actif',
+        ]
+        widgets = {
+            'nom': forms.TextInput(attrs={'class': 'input'}),
+            'slogan': forms.TextInput(attrs={'class': 'input'}),
+            'logo': forms.FileInput(attrs={'class': 'input'}),
+            'adresse': forms.Textarea(attrs={'class': 'input', 'rows': 2}),
+            'telephone': forms.TextInput(attrs={'class': 'input'}),
+            'email': forms.EmailInput(attrs={'class': 'input'}),
+            'site_web': forms.URLInput(attrs={'class': 'input'}),
+            'rccm': forms.TextInput(attrs={'class': 'input'}),
+            'id_national': forms.TextInput(attrs={'class': 'input'}),
+            'numero_impot': forms.TextInput(attrs={'class': 'input'}),
+            'devise': forms.TextInput(attrs={'class': 'input'}),
+            'separateur_milliers': forms.TextInput(attrs={'class': 'input'}),
+            'prefixe_symbole': forms.CheckboxInput(attrs={'class': 'checkbox'}),
+            'mentions_footer': forms.Textarea(attrs={'class': 'input', 'rows': 3}),
+            'actif': forms.CheckboxInput(attrs={'class': 'checkbox'}),
+        }

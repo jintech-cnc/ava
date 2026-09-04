@@ -1,16 +1,65 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Q, Prefetch, Count, Sum, F, OuterRef, Subquery, Value, IntegerField
+from django.db.models.functions import Coalesce
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import render_to_string
 from django.utils.translation import gettext as _
+from django.core.cache import cache
+from django.views.decorators.cache import cache_page
+from django.http import HttpResponse
+from django.utils import timezone
+from django.db import models
 
-from .models import Product, StockMovement, Category, Warehouse, Supplier, ReorderRule, PurchaseOrder, PurchaseOrderItem
-from .forms import ProductForm, StockMovementForm, CategoryForm, SupplierForm, ReorderRuleForm, PurchaseOrderForm, PurchaseOrderItemFormSet
+from .models import Product, StockMovement, Category, Warehouse, Supplier, ReorderRule, PurchaseOrder, PurchaseOrderItem, Company, Stock
+from .forms import ProductForm, StockMovementForm, CategoryForm, SupplierForm, ReorderRuleForm, PurchaseOrderForm, PurchaseOrderItemFormSet, CompanyForm
+from utils.exports import (
+    generate_product_list_pdf, generate_product_list_excel,
+    generate_order_pdf, generate_order_excel,
+    generate_purchase_order_pdf, generate_purchase_order_excel,
+    generate_movement_pdf, generate_movement_excel,
+    generate_requisition_pdf, generate_requisition_excel,
+)
 
 
 def is_htmx(request):
     return request.headers.get('HX-Request') == 'true'
+
+
+def get_cached_categories():
+    """Cache des catégories pour éviter des requêtes répétées."""
+    categories = cache.get('all_categories')
+    if categories is None:
+        categories = list(Category.objects.all().order_by('nom'))
+        cache.set('all_categories', categories, 60 * 5)  # 5 min
+    return categories
+
+
+def get_current_company(request):
+    """Récupère l'entreprise active pour l'utilisateur courant."""
+    company = getattr(request, 'current_company', None)
+    if company is not None:
+        return company
+    profile = getattr(request.user, 'profile', None)
+    if profile and profile.company and profile.company.actif:
+        return profile.company
+    # Fallback : première entreprise active
+    company = Company.objects.filter(actif=True).first()
+    return company
+
+
+def get_products_needing_reorder():
+    """Liste les produits en alerte de stock (sous le seuil). Annoté pour éviter N+1."""
+    stock_subquery = Stock.objects.filter(produit=OuterRef('pk')).values('produit').annotate(
+        total=Sum('quantite')
+    ).values('total')
+    return Product.objects.select_related('categorie').prefetch_related(
+        'stocks', 'reorder_rule__fournisseur'
+    ).annotate(
+        stock_total=Coalesce(Subquery(stock_subquery), Value(0), output_field=IntegerField()),
+    ).filter(actif=True).filter(
+        stock_total__lte=F('seuil_alerte')
+    )
 
 
 @login_required
@@ -18,7 +67,12 @@ def product_list(request):
     query = request.GET.get('q', '').strip()
     categorie_id = request.GET.get('categorie', '')
 
-    produits = Product.objects.select_related('categorie').all()
+    # Optimisation: select_related évite les requêtes N+1 sur la catégorie
+    produits = Product.objects.select_related('categorie').only(
+        'id', 'reference', 'nom', 'prix_unitaire', 'seuil_alerte', 'actif', 'unite',
+        'categorie__nom', 'categorie__id'
+    )
+    
     if query:
         produits = produits.filter(
             Q(nom__icontains=query) | Q(reference__icontains=query)
@@ -28,13 +82,12 @@ def product_list(request):
 
     contexte = {
         'produits': produits,
-        'categories': Category.objects.all(),
+        'categories': get_cached_categories(),
         'query': query,
         'categorie_id': categorie_id,
     }
 
     if is_htmx(request):
-        # Ne renvoie que le tableau, pour un rafraîchissement fluide sans recharger la page
         return render(request, 'inventory/_product_table.html', contexte)
     return render(request, 'inventory/product_list.html', contexte)
 
@@ -371,5 +424,312 @@ def purchase_order_receive(request, pk):
         
         messages.success(request, _('Réception enregistrée.'))
         return redirect('inventory:purchase_order_detail', pk=pk)
-    
+
     return redirect('inventory:purchase_order_detail', pk=pk)
+
+
+# ==========================================
+# Entreprises (multi-tenant)
+# ==========================================
+
+@login_required
+def company_list(request):
+    companies = Company.objects.all().order_by('-actif', 'nom')
+    return render(request, 'inventory/company_list.html', {'companies': companies})
+
+
+@login_required
+def company_form(request, pk=None):
+    company = get_object_or_404(Company, pk=pk) if pk else None
+    if request.method == 'POST':
+        form = CompanyForm(request.POST, request.FILES, instance=company)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _('Entreprise enregistrée.'))
+            return redirect('inventory:company_list')
+    else:
+        form = CompanyForm(instance=company)
+    return render(request, 'inventory/_company_form.html', {'form': form, 'company': company})
+
+
+@login_required
+def company_delete(request, pk):
+    company = get_object_or_404(Company, pk=pk)
+    if request.method == 'POST':
+        company.delete()
+        messages.success(request, _('Entreprise supprimée.'))
+        return redirect('inventory:company_list')
+    return render(request, 'inventory/_confirm_delete.html', {'object': company})
+
+
+# ==========================================
+# Fiche de réquisition intelligente
+# ==========================================
+
+@login_required
+def requisition_preview(request):
+    """Affiche un aperçu de la fiche de réquisition pour les produits en rupture."""
+    company = get_current_company(request)
+
+    # Paramètre pour seuil personnalisé (optionnel)
+    personnalise = request.GET.get('seuil_personnalise', '').strip()
+
+    produits = get_products_needing_reorder()
+
+    # Construire les lignes de réquisition
+    lignes = []
+    for p in produits:
+        # Déterminer la quantité à commander
+        qte_actuelle = p.stock_total
+        regle = getattr(p, 'reorder_rule', None)
+        if regle:
+            qte_cible = regle.quantite_cible
+            fournisseur = regle.fournisseur
+        else:
+            qte_cible = max(p.seuil_alerte * 2, 10)
+            fournisseur = None
+
+        qte_a_commander = max(0, qte_cible - qte_actuelle)
+
+        lignes.append({
+            'produit': p,
+            'stock_actuel': qte_actuelle,
+            'seuil': p.seuil_alerte,
+            'qte_cible': qte_cible,
+            'qte_a_commander': qte_a_commander,
+            'fournisseur': fournisseur,
+            'prix_unitaire': float(p.prix_unitaire),
+            'estimation': float(p.prix_unitaire) * qte_a_commander,
+        })
+
+    # Grouper par fournisseur
+    lignes_par_fournisseur = {}
+    for ligne in lignes:
+        key = ligne['fournisseur'].nom if ligne['fournisseur'] else 'Aucun fournisseur'
+        lignes_par_fournisseur.setdefault(key, []).append(ligne)
+
+    total_estime = sum(l['estimation'] for l in lignes)
+
+    contexte = {
+        'company': company,
+        'lignes': lignes,
+        'lignes_par_fournisseur': lignes_par_fournisseur,
+        'total_estime': total_estime,
+        'nb_produits': len(lignes),
+    }
+    return render(request, 'inventory/requisition_preview.html', contexte)
+
+
+@login_required
+def requisition_pdf(request):
+    """Génère le PDF de la fiche de réquisition."""
+    company = get_current_company(request)
+    produits = get_products_needing_reorder()
+
+    lignes = []
+    for p in produits:
+        regle = getattr(p, 'reorder_rule', None)
+        if regle:
+            qte_cible = regle.quantite_cible
+            fournisseur = regle.fournisseur
+        else:
+            qte_cible = max(p.seuil_alerte * 2, 10)
+            fournisseur = None
+
+        qte_actuelle = p.stock_total
+        qte_a_commander = max(0, qte_cible - qte_actuelle)
+
+        lignes.append({
+            'produit': p,
+            'stock_actuel': qte_actuelle,
+            'qte_cible': qte_cible,
+            'qte_a_commander': qte_a_commander,
+            'fournisseur': fournisseur,
+            'prix_unitaire': float(p.prix_unitaire),
+            'estimation': float(p.prix_unitaire) * qte_a_commander,
+        })
+
+    buffer = generate_requisition_pdf(lignes, company)
+    filename = f"requisition_{timezone.now().strftime('%Y%m%d_%H%M')}.pdf"
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required
+def requisition_excel(request):
+    """Génère le fichier Excel de la fiche de réquisition."""
+    company = get_current_company(request)
+    produits = get_products_needing_reorder()
+
+    lignes = []
+    for p in produits:
+        regle = getattr(p, 'reorder_rule', None)
+        if regle:
+            qte_cible = regle.quantite_cible
+            fournisseur = regle.fournisseur
+        else:
+            qte_cible = max(p.seuil_alerte * 2, 10)
+            fournisseur = None
+
+        qte_actuelle = p.stock_total
+        qte_a_commander = max(0, qte_cible - qte_actuelle)
+
+        lignes.append({
+            'produit': p,
+            'stock_actuel': qte_actuelle,
+            'qte_cible': qte_cible,
+            'qte_a_commander': qte_a_commander,
+            'fournisseur': fournisseur,
+            'prix_unitaire': float(p.prix_unitaire),
+            'estimation': float(p.prix_unitaire) * qte_a_commander,
+        })
+
+    buffer = generate_requisition_excel(lignes, company)
+    filename = f"requisition_{timezone.now().strftime('%Y%m%d_%H%M')}.xlsx"
+    response = HttpResponse(
+        buffer.getvalue() if hasattr(buffer, 'getvalue') else buffer.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required
+def requisition_create_po(request):
+    """Crée un bon de commande brouillon depuis la réquisition."""
+    if request.method != 'POST':
+        return redirect('inventory:requisition_preview')
+
+    fournisseur_id = request.POST.get('fournisseur_id')
+    lignes_data = request.POST.getlist('lignes')
+
+    # Construire les lignes depuis les données POST
+    lignes_produits = []
+    for idx in range(0, len(lignes_data), 3):
+        if idx + 2 >= len(lignes_data):
+            break
+        try:
+            produit_id = int(lignes_data[idx])
+            qte = int(lignes_data[idx + 1])
+            prix = float(lignes_data[idx + 2])
+            if qte > 0:
+                lignes_produits.append({
+                    'produit_id': produit_id,
+                    'quantite_commandee': qte,
+                    'prix_unitaire': prix,
+                })
+        except (ValueError, IndexError):
+            continue
+
+    if not lignes_produits:
+        messages.warning(request, _('Aucune ligne valide pour créer le bon de commande.'))
+        return redirect('inventory:requisition_preview')
+
+    # Créer le bon de commande
+    bon = PurchaseOrder.objects.create(
+        fournisseur_id=fournisseur_id if fournisseur_id else None,
+        statut=PurchaseOrder.Statut.BROUILLON,
+        cree_par=request.user,
+    )
+
+    # Créer les lignes
+    for ligne_data in lignes_produits:
+        PurchaseOrderItem.objects.create(
+            bon_commande=bon,
+            produit_id=ligne_data['produit_id'],
+            quantite_commandee=ligne_data['quantite_commandee'],
+            prix_unitaire=ligne_data['prix_unitaire'],
+        )
+
+    messages.success(request, _('Bon de commande %(ref)s créé depuis la réquisition.') % {'ref': bon.reference})
+    return redirect('inventory:purchase_order_detail', pk=bon.pk)
+
+
+# ==========================================
+# Vues d'export PDF/Excel (wrapper)
+# ==========================================
+
+@login_required
+def export_products_pdf(request):
+    """Export PDF de la liste des produits."""
+    products = Product.objects.select_related('categorie').only(
+        'id', 'reference', 'nom', 'categorie__nom', 'categorie__id',
+        'prix_unitaire', 'seuil_alerte', 'actif', 'unite'
+    )
+    buffer = generate_product_list_pdf(products)
+    return HttpResponse(buffer, content_type='application/pdf')
+
+
+@login_required
+def export_products_excel(request):
+    """Export Excel de la liste des produits."""
+    products = Product.objects.select_related('categorie').all()
+    buffer = generate_product_list_excel(products)
+    return HttpResponse(
+        buffer.getvalue() if hasattr(buffer, 'getvalue') else buffer.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+
+
+@login_required
+def export_movements_pdf(request):
+    """Export PDF des mouvements de stock."""
+    movements = StockMovement.objects.select_related(
+        'produit', 'entrepot', 'effectue_par'
+    ).order_by('-cree_le')[:500]
+    buffer = generate_movement_pdf(movements)
+    return HttpResponse(buffer, content_type='application/pdf')
+
+
+@login_required
+def export_movements_excel(request):
+    """Export Excel des mouvements de stock."""
+    movements = StockMovement.objects.select_related(
+        'produit', 'entrepot', 'effectue_par'
+    ).order_by('-cree_le')[:500]
+    buffer = generate_movement_excel(movements)
+    return HttpResponse(
+        buffer.getvalue() if hasattr(buffer, 'getvalue') else buffer.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+
+
+@login_required
+def export_order_pdf(request, pk):
+    """Export PDF d'une commande."""
+    from .models import Order
+    order = get_object_or_404(Order.objects.prefetch_related('lignes__produit', 'client'), pk=pk)
+    buffer = generate_order_pdf(order)
+    return HttpResponse(buffer, content_type='application/pdf')
+
+
+@login_required
+def export_order_excel(request, pk):
+    """Export Excel d'une commande."""
+    from .models import Order
+    order = get_object_or_404(Order.objects.prefetch_related('lignes__produit', 'client'), pk=pk)
+    buffer = generate_order_excel(order)
+    return HttpResponse(
+        buffer.getvalue() if hasattr(buffer, 'getvalue') else buffer.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+
+
+@login_required
+def export_purchase_order_pdf(request, pk):
+    """Export PDF d'un bon de commande."""
+    bon = get_object_or_404(PurchaseOrder.objects.select_related('fournisseur', 'entrepot').prefetch_related('lignes__produit'), pk=pk)
+    buffer = generate_purchase_order_pdf(bon)
+    return HttpResponse(buffer, content_type='application/pdf')
+
+
+@login_required
+def export_purchase_order_excel(request, pk):
+    """Export Excel d'un bon de commande."""
+    bon = get_object_or_404(PurchaseOrder.objects.select_related('fournisseur', 'entrepot').prefetch_related('lignes__produit'), pk=pk)
+    buffer = generate_purchase_order_excel(bon)
+    return HttpResponse(
+        buffer.getvalue() if hasattr(buffer, 'getvalue') else buffer.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )

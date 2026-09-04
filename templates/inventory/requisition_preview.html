@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Fiche de réquisition" %}{% endblock %}
+{% block page_title %}{% trans "Fiche de réquisition provisoire" %}{% endblock %}
+{% block content %}
+<div class="panel">
+    {# En-tête entreprise #}
+    {% if company %}
+    <div class="company-header">
+        <div class="company-header__left">
+            {% if company.logo %}
+                <img src="{{ company.logo.url }}" alt="{{ company.nom }}" class="company-header__logo">
+            {% else %}
+                <div class="company-header__logo company-header__logo--placeholder">{{ company.nom|slice:":1"|upper }}</div>
+            {% endif %}
+            <div>
+                <h2 class="company-header__name">{{ company.nom }}</h2>
+                {% if company.slogan %}<p class="company-header__slogan">{{ company.slogan }}</p>{% endif %}
+                {% if company.adresse %}<p class="company-header__addr">{{ company.adresse }}</p>{% endif %}
+            </div>
+        </div>
+        <div class="company-header__right">
+            <h1 class="doc-title">FICHE DE RÉQUISITION</h1>
+            <p class="doc-meta">{% now "d/m/Y à H:i" %}</p>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert--warn">
+        {% trans "Aucune entreprise configurée. Les documents seront générés sans en-tête." %}
+        <a href="{% url 'inventory:company_list' %}">{% trans "Configurer une entreprise" %}</a>
+    </div>
+    {% endif %}
+
+    {# Actions d'export #}
+    <div class="toolbar">
+        <div class="toolbar__left">
+            {% if lignes %}
+            <span class="badge badge--warn">{{ nb_produits }} {% trans "produit(s) en alerte" %}</span>
+            <span class="badge">{% trans "Estimation totale" %} : <strong>{{ total_estime }} {{ company.devise|default:"FC" }}</strong></span>
+            {% else %}
+            <span class="badge badge--success">✓ {% trans "Aucun produit en alerte" %}</span>
+            {% endif %}
+        </div>
+        <div class="toolbar__right">
+            {% if lignes %}
+            <a href="{% url 'inventory:requisition_pdf' %}" class="btn btn--outline">
+                📄 {% trans "Télécharger PDF" %}
+            </a>
+            <a href="{% url 'inventory:requisition_excel' %}" class="btn btn--outline">
+                📊 {% trans "Télécharger Excel" %}
+            </a>
+            <button class="btn btn--primary" onclick="document.getElementById('create-bc-form').classList.toggle('hidden')">
+                🚚 {% trans "Créer bon de commande" %}
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Formulaire de création de BC (toggle) #}
+    {% if lignes %}
+    <div id="create-bc-form" class="panel hidden" style="margin-top: 1rem;">
+        <h3>{% trans "Créer un bon de commande depuis cette réquisition" %}</h3>
+        <form method="post" action="{% url 'inventory:requisition_create_po' %}" class="form-grid">
+            {% csrf_token %}
+            <div class="form-row form-row--full">
+                <label class="form-label">{% trans "Fournisseur principal" %}</label>
+                <select name="fournisseur_id" class="input">
+                    <option value="">— {% trans "Aucun" %} —</option>
+                    {% regroup lignes_par_fournisseur by asdf as grouped %}
+                </select>
+            </div>
+
+            {% for fournisseur_nom, lignes_groupees in lignes_par_fournisseur.items %}
+            <div class="form-section">
+                <h4 class="form-section-title">
+                    {% if fournisseur_nom != 'Aucun fournisseur' %}{{ fournisseur_nom }}{% else %}{% trans "Sans fournisseur" %}{% endif %}
+                    ({{ lignes_groupees|length }} produit(s))
+                </h4>
+                {% for ligne in lignes_groupees %}
+                <input type="hidden" name="lignes" value="{{ ligne.produit.pk }}|{{ ligne.qte_a_commander }}|{{ ligne.prix_unitaire }}">
+                <div class="req-line">
+                    <span class="req-line__ref">{{ ligne.produit.reference }}</span>
+                    <span class="req-line__name">{{ ligne.produit.nom }}</span>
+                    <span class="req-line__stock">{{ ligne.stock_actuel }}/{{ ligne.seuil }}</span>
+                    <span class="req-line__qty">→ {{ ligne.qte_a_commander }} {{ ligne.produit.unite }}</span>
+                    <span class="req-line__price">{{ ligne.estimation }} {{ company.devise|default:"FC" }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+
+            <div class="form-row form-row--full modal-actions">
+                <button type="submit" class="btn btn--primary">{% trans "Créer le bon de commande" %}</button>
+                <button type="button" class="btn btn--ghost" onclick="document.getElementById('create-bc-form').classList.add('hidden')">{% trans "Annuler" %}</button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    {# Tableau des produits en rupture #}
+    {% if lignes %}
+    <div class="table-wrap">
+        <table class="data-table data-table--req">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>{% trans "Référence" %}</th>
+                    <th>{% trans "Produit" %}</th>
+                    <th>{% trans "Catégorie" %}</th>
+                    <th>{% trans "Stock" %}</th>
+                    <th>{% trans "Seuil" %}</th>
+                    <th>{% trans "Qté cible" %}</th>
+                    <th>{% trans "Qté à commander" %}</th>
+                    <th>{% trans "Fournisseur" %}</th>
+                    <th>{% trans "Estimation" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ligne in lignes %}
+                <tr class="{% if ligne.stock_actuel == 0 %}row--danger{% else %}row--warn{% endif %}">
+                    <td>{{ forloop.counter }}</td>
+                    <td><code>{{ ligne.produit.reference }}</code></td>
+                    <td><strong>{{ ligne.produit.nom }}</strong></td>
+                    <td>{{ ligne.produit.categorie.nom|default:"—" }}</td>
+                    <td class="text-center">
+                        {% if ligne.stock_actuel == 0 %}
+                            <span class="badge badge--danger">0</span>
+                        {% else %}
+                            {{ ligne.stock_actuel }}
+                        {% endif %}
+                    </td>
+                    <td class="text-center">{{ ligne.seuil }}</td>
+                    <td class="text-center">{{ ligne.qte_cible }}</td>
+                    <td class="text-center"><strong>{{ ligne.qte_a_commander }}</strong></td>
+                    <td>{{ ligne.fournisseur.nom|default:"—" }}</td>
+                    <td class="text-right">{{ ligne.estimation|floatformat:2 }} {{ company.devise|default:"FC" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="9" class="text-right"><strong>TOTAL ESTIMÉ</strong></td>
+                    <td class="text-right"><strong>{{ total_estime|floatformat:2 }} {{ company.devise|default:"FC" }}</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state__icon">✓</div>
+        <p>{% trans "Tous vos produits sont bien approvisionnés. Aucune réquisition nécessaire." %}</p>
+    </div>
+    {% endif %}
+
+    {# Signature #}
+    {% if lignes %}
+    <div class="signature-block">
+        <div class="signature-block__col">
+            <p class="signature-block__label">{% trans "Demandé par" %}</p>
+            <div class="signature-block__line"></div>
+            <p class="signature-block__date">{% now "d/m/Y" %}</p>
+        </div>
+        <div class="signature-block__col">
+            <p class="signature-block__label">{% trans "Approuvé par" %}</p>
+            <div class="signature-block__line"></div>
+            <p class="signature-block__date">{% trans "Date" %}</p>
+        </div>
+        <div class="signature-block__col">
+            <p class="signature-block__label">{% trans "Direction" %}</p>
+            <div class="signature-block__line"></div>
+            <p class="signature-block__date">{% trans "Date" %}</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.company-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 1.5rem;
+    background: var(--color-surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    margin-bottom: 1.5rem;
+    gap: 2rem;
+}
+.company-header__left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.company-header__logo {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    border-radius: var(--radius-sm);
+}
+.company-header__logo--placeholder {
+    width: 60px;
+    height: 60px;
+    background: var(--color-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    border-radius: var(--radius-sm);
+}
+.company-header__name { margin: 0; font-size: 1.2rem; }
+.company-header__slogan { margin: 0; color: var(--color-text-muted); font-style: italic; font-size: 0.875rem; }
+.company-header__addr { margin: 0; color: var(--color-text-muted); font-size: 0.8rem; }
+.company-header__right { text-align: right; }
+.doc-title { margin: 0; color: var(--color-primary); font-size: 1.4rem; }
+.doc-meta { margin: 0; color: var(--color-text-muted); font-size: 0.8rem; }
+.hidden { display: none !important; }
+.req-line {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.875rem;
+}
+.req-line__ref { font-family: monospace; color: var(--color-text-muted); width: 80px; }
+.req-line__name { flex: 1; }
+.req-line__stock { color: var(--color-text-muted); }
+.req-line__qty { color: var(--color-primary); font-weight: 600; }
+.req-line__price { color: var(--color-text-muted); min-width: 100px; text-align: right; }
+.row--danger td { background: rgba(229, 72, 77, 0.05); }
+.row--warn td { background: rgba(245, 165, 36, 0.05); }
+.signature-block {
+    display: flex;
+    gap: 3rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-border);
+}
+.signature-block__col { flex: 1; text-align: center; }
+.signature-block__label { font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: 0.25rem; }
+.signature-block__line {
+    border-bottom: 1px solid var(--color-text);
+    height: 40px;
+    margin-bottom: 0.25rem;
+}
+.signature-block__date { font-size: 0.75rem; color: var(--color-text-muted); }
+.data-table--req td:nth-child(5),
+.data-table--req td:nth-child(6),
+.data-table--req td:nth-child(7),
+.data-table--req td:nth-child(8) { text-align: center; }
+</style>
+{% endblock %}
