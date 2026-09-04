@@ -313,9 +313,14 @@ a { color: inherit; text-decoration: none; }
 .text-right { text-align: right; }
 
 /* ---------- Forms ---------- */
-.form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-.field { display: flex; flex-direction: column; gap: 6px; }
-.field--full { grid-column: 1 / -1; }
+.form-grid { 
+    display: grid; 
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 16px;
+    padding: 0;
+}
+.form-grid .field { display: flex; flex-direction: column; gap: 6px; }
+.form-grid .field--full { grid-column: 1 / -1; }
 .field-label { font-size: 0.78rem; font-weight: 600; color: var(--color-text-muted); }
 .field-label--required { color: var(--color-text); }
 .field-required { color: var(--color-danger); font-weight: 800; margin-left: 2px; }
@@ -327,6 +332,17 @@ a { color: inherit; text-decoration: none; }
 
 .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; }
 .detail-grid p { margin: 4px 0 0; font-weight: 600; }
+
+/* Force display of form fields - fix for hidden inputs */
+.form-grid .field,
+.form-grid .field input,
+.form-grid .field select,
+.form-grid .field textarea,
+.form-grid .field .input {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
 
 /* ---------- Auth screen ---------- */
 .auth-screen {
@@ -400,6 +416,11 @@ a { color: inherit; text-decoration: none; }
 }
 .modal-panel__header h2 { font-size: 1.02rem; margin: 0; }
 .modal-panel__body { padding: 20px 22px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.modal-panel__body .field { display: flex !important; flex-direction: column; gap: 6px; min-width: 0; }
+.modal-panel__body .field input,
+.modal-panel__body .field select,
+.modal-panel__body .field textarea { width: 100% !important; box-sizing: border-box; display: block; }
+.modal-panel__body .field input[type="checkbox"] { width: auto !important; }
 .modal-panel__footer { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 22px; border-top: 1px solid var(--color-border); }
 
 .modal-in { animation: modalPop 260ms cubic-bezier(.16,1,.3,1) both; }
@@ -690,5 +711,6 @@ a { color: inherit; text-decoration: none; }
     .sidebar { position: fixed; z-index: 90; transform: translateX(-100%); }
     .sidebar--open { transform: translateX(0); }
     .hamburger { display: block; }
-    .form-grid, .modal-panel__body { grid-template-columns: 1fr; }
+    .form-grid, .modal-panel__body { grid-template-columns: 1fr !important; }
+    .modal-panel__body .field { min-width: 100%; }
 }

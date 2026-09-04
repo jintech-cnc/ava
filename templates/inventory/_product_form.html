@@ -6,7 +6,7 @@
             <button type="button" class="icon-btn" @click="open = false; $el.closest('.modal-overlay').remove()">✕</button>
         </div>
         <form
-            class="form-grid"
+            class="modal-panel__body form-grid"
             hx-post="{% if produit %}{% url 'inventory:product_edit' produit.pk %}{% else %}{% url 'inventory:product_create' %}{% endif %}"
             hx-target="#modal-region"
             hx-swap="innerHTML"
@@ -37,10 +37,10 @@
                 {% endif %}
             </div>
             {% endfor %}
-            <div class="modal-panel__footer field--full">
-                <button type="button" class="btn btn--ghost" @click="open = false; $el.closest('.modal-overlay').remove()">{% trans "Annuler" %}</button>
-                <button type="submit" class="btn btn--primary">{% trans "Enregistrer" %}</button>
-            </div>
         </form>
+        <div class="modal-panel__footer">
+            <button type="button" class="btn btn--ghost" @click="open = false; $el.closest('.modal-overlay').remove()">{% trans "Annuler" %}</button>
+            <button type="submit" class="btn btn--primary" @click="document.querySelector('.modal-panel__body.form-grid').requestSubmit()">{% trans "Enregistrer" %}</button>
+        </div>
     </div>
 </div>
