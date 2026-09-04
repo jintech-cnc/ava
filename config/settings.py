@@ -71,13 +71,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Base de données — SQLite pour démarrer
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# Base de données — la configuration ci-dessus (DATABASE_URL) est utilisée si définie,
+# sinon SQLite. Aucun DATABASES redondant ne doit être déclaré ici.
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
