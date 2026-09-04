@@ -1,46 +1,66 @@
 {% load i18n %}
-<div class="modal-overlay" x-data="{ open: true }" x-show="open" x-init="open = true" x-transition.opacity>
-    <div class="modal-panel modal-panel--lg" x-transition:enter="modal-in" @click.outside="open = false; $el.closest('.modal-overlay').remove()">
+<div id="modal-region">
+<div class="modal-overlay" style="display: flex !important; opacity: 1 !important; visibility: visible !important;">
+    <div class="modal-panel modal-panel--lg" style="max-width: 800px; width: 95%;">
         <div class="modal-panel__header">
             <h2>{% if produit %}{% trans "Modifier le produit" %}{% else %}{% trans "Nouveau produit" %}{% endif %}</h2>
-            <button type="button" class="icon-btn" @click="open = false; $el.closest('.modal-overlay').remove()">✕</button>
+            <a href="{% url 'inventory:product_list' %}" class="icon-btn" onclick="this.closest('.modal-overlay').remove(); return false;">✕</a>
         </div>
-        <form
-            class="modal-panel__body form-grid"
-            hx-post="{% if produit %}{% url 'inventory:product_edit' produit.pk %}{% else %}{% url 'inventory:product_create' %}{% endif %}"
-            hx-target="#modal-region"
-            hx-swap="innerHTML"
-            enctype="multipart/form-data"
-        >
-            {% csrf_token %}
-            
-            {% if form.non_field_errors %}
-            <div class="field--full alert alert--error">
-                {% for error in form.non_field_errors %}{{ error }}{% endfor %}
-            </div>
-            {% endif %}
+        <div class="modal-panel__body" style="display: block; padding: 20px;">
+            <form method="post" action="{% if produit %}{% url 'inventory:product_edit' produit.pk %}{% else %}{% url 'inventory:product_create' %}{% endif %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="alert alert--error" style="margin-bottom: 15px;">
+                    {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                </div>
+                {% endif %}
 
-            {% for field in form %}
-            <div class="field {% if field.name == 'description' %}field--full{% endif %}">
-                <label class="field-label {% if field.field.required %}field-label--required{% endif %}" for="{{ field.id_for_label }}">
-                    {{ field.label }}
-                    {% if field.field.required %}<span class="field-required">*</span>{% endif %}
-                </label>
-                {{ field }}
-                {% if field.errors %}
-                    {% for error in field.errors %}
-                        <span class="field-error">{{ error|striptags }}</span>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                    {% for field in form %}
+                    <div style="display: flex; flex-direction: column; gap: 6px; {% if field.name == 'description' %}grid-column: 1 / -1;{% endif %}">
+                        <label style="font-size: 0.85rem; font-weight: 600; color: #6b7280;">
+                            {{ field.label }}
+                            {% if field.field.required %}<span style="color: #e5484d;">*</span>{% endif %}
+                        </label>
+                        {{ field }}
+                        {% if field.errors %}
+                            {% for error in field.errors %}
+                            <span style="color: #e5484d; font-size: 0.8rem;">{{ error|striptags }}</span>
+                            {% endfor %}
+                        {% endif %}
+                        {% if field.help_text %}
+                            <span style="font-size: 0.8rem; color: #6b7280;">{{ field.help_text }}</span>
+                        {% endif %}
+                    </div>
                     {% endfor %}
-                {% endif %}
-                {% if field.help_text %}
-                    <span class="hint-text">{{ field.help_text }}</span>
-                {% endif %}
-            </div>
-            {% endfor %}
-        </form>
-        <div class="modal-panel__footer">
-            <button type="button" class="btn btn--ghost" @click="open = false; $el.closest('.modal-overlay').remove()">{% trans "Annuler" %}</button>
-            <button type="submit" class="btn btn--primary" @click="document.querySelector('.modal-panel__body.form-grid').requestSubmit()">{% trans "Enregistrer" %}</button>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5e8ef;">
+                    <a href="{% url 'inventory:product_list' %}" class="btn btn--ghost">{% trans "Annuler" %}</a>
+                    <button type="submit" class="btn btn--primary">{% trans "Enregistrer" %}</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
+</div>
+
+<style>
+#modal-region .input {
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #e5e8ef;
+    font-size: 0.9rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+#modal-region .input:focus {
+    outline: none;
+    border-color: #4f5eff;
+    box-shadow: 0 0 0 3px rgba(79,94,255,0.15);
+}
+#modal-region select.input {
+    background-color: white;
+}
+</style>
