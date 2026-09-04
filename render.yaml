@@ -24,6 +24,13 @@ services:
         fromDatabase:
           name: ava-db
           property: connectionString
+      - key: DJANGO_SUPERUSER_USERNAME
+        value: admin
+      - key: DJANGO_SUPERUSER_EMAIL
+        value: admin@ava.local
+      - key: DJANGO_SUPERUSER_PASSWORD
+        generateValue: true
+        # IMPORTANT: va dans le dashboard Render et remplace par ton vrai mot de passe
 
 databases:
   - name: ava-db
