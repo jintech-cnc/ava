@@ -446,7 +446,11 @@ def company_form(request, pk=None):
         if form.is_valid():
             form.save()
             messages.success(request, _('Entreprise enregistrée.'))
-            return redirect('inventory:company_list')
+            # Réponse HTMX qui ferme la modale
+            response = HttpResponse('')
+            response['HX-Trigger'] = '{"companySaved": "", "showMessage": "Entreprise enregistrée"}'
+            response['HX-Reswap'] = 'none'
+            return response
     else:
         form = CompanyForm(instance=company)
     return render(request, 'inventory/_company_form.html', {'form': form, 'company': company})

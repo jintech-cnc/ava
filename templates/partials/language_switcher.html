@@ -5,25 +5,28 @@
 <div class="lang-switcher" x-data="{ open: false }">
     <button type="button" class="nav-link lang-switcher__toggle" @click="open = !open">
         <span class="nav-icon">🌐</span>
-        <span class="lang-label">
-            {% for lang in languages %}
-                {% if lang.code == CURRENT_LANG %}{{ lang.code|upper }}{% endif %}
-            {% endfor %}
-        </span>
+        <span class="lang-label">{{ CURRENT_LANG|upper }}</span>
         <span class="lang-caret">▾</span>
     </button>
-    <div class="lang-switcher__menu" x-show="open" @click.outside="open = false" x-cloak>
-        <form id="lang-form" action="{% url 'set_language' %}" method="post">
-            {% csrf_token %}
-            <input name="next" type="hidden" value="{{ request.path }}">
-            <input name="language" type="hidden" value="{{ CURRENT_LANG }}" id="lang-input">
-        </form>
+
+    <!-- Menu avec UN seul formulaire pour CSRF propre -->
+    <form class="lang-switcher__menu"
+          action="{% url 'set_language' %}"
+          method="POST"
+          x-show="open"
+          x-cloak
+          @click.outside="open = false">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}">
+
         {% for lang in languages %}
-        <button type="button"
+        <button type="submit"
+                name="language"
+                value="{{ lang.code }}"
                 class="lang-switcher__item {% if lang.code == CURRENT_LANG %}lang-switcher__item--active{% endif %}"
-                @click="document.getElementById('lang-input').value='{{ lang.code }}'; document.getElementById('lang-form').submit()">
+                @click="open = false">
             {{ lang.name_local }}
         </button>
         {% endfor %}
-    </div>
+    </form>
 </div>
