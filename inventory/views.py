@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.db.models import Q, Prefetch, Count, Sum, F, OuterRef, Subquery, Value, IntegerField
 from django.db.models.functions import Coalesce
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.template.loader import render_to_string
 from django.utils.translation import gettext as _
 from django.core.cache import cache
@@ -446,11 +447,12 @@ def company_form(request, pk=None):
         if form.is_valid():
             form.save()
             messages.success(request, _('Entreprise enregistrée.'))
-            # Réponse HTMX qui ferme la modale
-            response = HttpResponse('')
-            response['HX-Trigger'] = '{"companySaved": "", "showMessage": "Entreprise enregistrée"}'
-            response['HX-Reswap'] = 'none'
-            return response
+            if is_htmx(request):
+                # HTMX : redirection côté client
+                response = HttpResponse('')
+                response['HX-Redirect'] = reverse('inventory:company_list')
+                return response
+            return redirect('inventory:company_list')
     else:
         form = CompanyForm(instance=company)
     return render(request, 'inventory/_company_form.html', {'form': form, 'company': company})

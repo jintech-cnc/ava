@@ -43,18 +43,20 @@ def is_admin(user):
 def admin_dashboard(request):
     """Tableau de bord administratif simplifié."""
     from orders.models import Client, Order
-    from inventory.models import Warehouse
+    from inventory.models import Warehouse, Category
 
     total_users = User.objects.count()
     total_clients = Client.objects.count()
     total_orders = Order.objects.count()
     total_warehouses = Warehouse.objects.count()
+    total_categories = Category.objects.count()
 
     stats = {
         'total_users': total_users,
         'total_clients': total_clients,
         'total_orders': total_orders,
         'total_warehouses': total_warehouses,
+        'total_categories': total_categories,
     }
 
     return render(request, 'accounts/admin_dashboard.html', {'stats': stats})

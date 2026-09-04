@@ -3,10 +3,7 @@
 {% block title %}{% trans "Entreprises" %}{% endblock %}
 {% block page_title %}{% trans "Entreprises" %}{% endblock %}
 {% block content %}
-<div class="panel"
-     hx-get="{% url 'inventory:company_list' %}"
-     hx-trigger="companySaved from:body"
-     hx-swap="innerHTML">
+<div class="panel">
     <div class="toolbar">
         <h2 class="panel__title">{% trans "Profils d'entreprise" %}</h2>
         <button class="btn btn--primary" hx-get="{% url 'inventory:company_create' %}" hx-target="#modal-region" hx-swap="innerHTML">
@@ -66,10 +63,4 @@
     <p class="empty-state">{% trans "Aucune entreprise configurée." %}</p>
     {% endif %}
 </div>
-
-<script>
-document.body.addEventListener('companySaved', () => {
-    document.getElementById('modal-region').innerHTML = '';
-});
-</script>
 {% endblock %}

@@ -53,6 +53,22 @@
     </div>
 
     <div class="admin-card">
+        <div class="admin-card__icon">🗂️</div>
+        <div class="admin-card__info">
+            <h3>{% trans "Catégories de produits" %}</h3>
+            <p>{% trans "Organiser le catalogue par catégorie." %}</p>
+        </div>
+        <div class="admin-card__stats">
+            <span class="stat-value">{{ stats.total_categories }}</span>
+            <span class="stat-label">{% trans "catégories" %}</span>
+        </div>
+        <div class="admin-card__actions">
+            <a href="{% url 'inventory:category_list' %}" class="btn btn--primary">{% trans "Gérer" %}</a>
+            <a href="{% url 'inventory:category_create' %}" class="btn btn--ghost">{% trans "Ajouter" %}</a>
+        </div>
+    </div>
+
+    <div class="admin-card">
         <div class="admin-card__icon">🧾</div>
         <div class="admin-card__info">
             <h3>{% trans "Commandes" %}</h3>

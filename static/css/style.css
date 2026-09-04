@@ -73,7 +73,7 @@ a { color: inherit; text-decoration: none; }
     width: 34px;
     height: 34px;
     border-radius: 10px;
-    background: linear-gradient(135deg, var(--color-primary), #8a5cf6);
+    background: #4f5eff;
     color: white;
     font-weight: 800;
 }
@@ -112,7 +112,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .nav-link--active {
-    background: linear-gradient(135deg, var(--color-primary), #6a5cf6);
+    background: #4f5eff;
     color: #fff;
 }
 
@@ -350,7 +350,7 @@ a { color: inherit; text-decoration: none; }
     display: flex;
     align-items: center;
     justify-content: center;
-    background: radial-gradient(circle at top left, #4f5eff 0%, #12172b 60%);
+    background: #12172b;
     padding: 20px;
 }
 
@@ -374,6 +374,9 @@ a { color: inherit; text-decoration: none; }
 .auth-subtitle { color: var(--color-text-muted); font-size: 0.85rem; margin: 0; }
 .auth-form { display: flex; flex-direction: column; gap: 12px; }
 .auth-form .input { width: 100%; padding: 12px 14px; }
+.auth-form__forgot { text-align: center; font-size: 0.85rem; }
+.auth-form__forgot a { color: var(--color-primary); text-decoration: none; }
+.auth-form__forgot a:hover { text-decoration: underline; }
 .auth-card__footer { margin-top: 20px; display: flex; justify-content: center; }
 
 /* ---------- Alerts / messages ---------- */
