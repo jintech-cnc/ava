@@ -2,24 +2,22 @@
 <div class="modal-overlay" x-data="{ open: true }" x-show="open" x-init="open = true" x-transition.opacity>
     <div class="modal-panel" x-transition:enter="modal-in" @click.outside="open = false; $el.closest('.modal-overlay').remove()">
         <div class="modal-panel__header">
-            <h2>{% if produit %}{% trans "Modifier le produit" %}{% else %}{% trans "Nouveau produit" %}{% endif %}</h2>
+            <h2>{% if category %}{% trans "Modifier la catégorie" %}{% else %}{% trans "Nouvelle catégorie" %}{% endif %}</h2>
             <button type="button" class="icon-btn" @click="open = false; $el.closest('.modal-overlay').remove()">✕</button>
         </div>
         <form
             class="modal-panel__body form-grid"
-            hx-post="{% if produit %}{% url 'inventory:product_edit' produit.pk %}{% else %}{% url 'inventory:product_create' %}{% endif %}"
+            hx-post="{% if category %}{% url 'inventory:category_edit' category.pk %}{% else %}{% url 'inventory:category_create' %}{% endif %}"
             hx-target="#modal-region"
             hx-swap="innerHTML"
             enctype="multipart/form-data"
         >
             {% csrf_token %}
-            
             {% if form.non_field_errors %}
             <div class="field--full alert alert--error">
                 {% for error in form.non_field_errors %}{{ error }}{% endfor %}
             </div>
             {% endif %}
-
             {% for field in form %}
             <div class="field {% if field.name == 'description' %}field--full{% endif %}">
                 <label class="field-label" for="{{ field.id_for_label }}">{{ field.label }}</label>

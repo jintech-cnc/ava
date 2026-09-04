@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{% trans "Produit" %}{% endblock %}
+{% block title %}{% trans "Catégorie" %}{% endblock %}
 {% block content %}
 <div class="panel panel--form">
-    <h2 class="panel__title">{% if produit %}{% trans "Modifier le produit" %}{% else %}{% trans "Nouveau produit" %}{% endif %}</h2>
+    <h2 class="panel__title">{% if category %}{% trans "Modifier la catégorie" %}{% else %}{% trans "Nouvelle catégorie" %}{% endif %}</h2>
     <form method="post" class="form-grid" enctype="multipart/form-data">
         {% csrf_token %}
         {% if form.non_field_errors %}
@@ -24,7 +24,7 @@
         {% endfor %}
         <div class="field--full">
             <button type="submit" class="btn btn--primary">{% trans "Enregistrer" %}</button>
-            <a href="{% url 'inventory:product_list' %}" class="btn btn--ghost">{% trans "Annuler" %}</a>
+            <a href="{% url 'inventory:category_list' %}" class="btn btn--ghost">{% trans "Annuler" %}</a>
         </div>
     </form>
 </div>

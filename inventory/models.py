@@ -7,6 +7,9 @@ from django.utils.translation import gettext_lazy as _
 class Category(models.Model):
     nom = models.CharField(_('nom'), max_length=100, unique=True)
     description = models.TextField(_('description'), blank=True)
+    image = models.ImageField(_('image'), upload_to='categories/', blank=True, null=True)
+    is_hero = models.BooleanField(_('Afficher en héro'), default=False, 
+        help_text=_('Cochez cette case pour mettre cette catégorie en avant dans l\'espace de vente.'))
 
     class Meta:
         verbose_name = _('Catégorie')

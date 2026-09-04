@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% block title %}{{ category.nom }}{% endblock %}
+{% block page_title %}{{ category.nom }}{% endblock %}
+{% block content %}
+<div class="panel">
+    {% if category.image %}
+    <div class="panel__hero-image" style="background-image: url('{{ category.image.url }}');"></div>
+    {% endif %}
+    <div class="panel__content">
+        <h3 class="panel__title">{{ category.nom }}</h3>
+        {% if category.description %}
+        <p class="panel__subtitle">{{ category.description }}</p>
+        {% endif %}
+        
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="stat-card__icon">📦</div>
+                <div class="stat-card__value">{{ category.produits.count }}</div>
+                <div class="stat-card__label">{% trans "Produits" %}</div>
+            </div>
+            {% if category.is_hero %}
+            <div class="stat-card stat--warn">
+                <div class="stat-card__icon">⭐</div>
+                <div class="stat-card__value">Héro</div>
+                <div class="stat-card__label">{% trans "Catégorie en vedette" %}</div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <h4>{% trans "Produits dans cette catégorie" %}</h4>
+        {% if category.produits.exists %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>{% trans "Image" %}</th>
+                    <th>{% trans "Nom" %}</th>
+                    <th>{% trans "Prix" %}</th>
+                    <th>{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for produit in category.produits.all|slice:":10" %}
+                <tr class="data-row {% if produit.en_alerte %}data-row--alert{% endif %}">
+                    <td>
+                        {% if produit.image %}
+                        <img src="{{ produit.image.url }}" alt="{{ produit.nom }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                        {% endif %}
+                    </td>
+                    <td><strong>{{ produit.nom }}</strong></td>
+                    <td>{{ produit.prix_unitaire }} €</td>
+                    <td class="data-row__actions">
+                        <a href="{% url 'inventory:product_edit' produit.pk %}" class="icon-btn">✎</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="empty-state">{% trans "Aucun produit dans cette catégorie." %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">{% trans "Aucun produit dans cette catégorie." %}</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

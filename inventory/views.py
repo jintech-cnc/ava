@@ -6,7 +6,7 @@ from django.template.loader import render_to_string
 from django.utils.translation import gettext as _
 
 from .models import Product, StockMovement, Category, Warehouse
-from .forms import ProductForm, StockMovementForm
+from .forms import ProductForm, StockMovementForm, CategoryForm
 
 
 def is_htmx(request):
@@ -109,3 +109,71 @@ def stock_movement_create(request):
 def movement_list(request):
     mouvements = StockMovement.objects.select_related('produit', 'entrepot', 'effectue_par')[:100]
     return render(request, 'inventory/movement_list.html', {'mouvements': mouvements})
+
+
+@login_required
+def category_list(request):
+    query = request.GET.get('q', '').strip()
+    categories = Category.objects.all()
+    
+    if query:
+        categories = categories.filter(
+            Q(nom__icontains=query) | 
+            Q(description__icontains=query)
+        )
+    
+    if is_htmx(request):
+        return render(request, 'inventory/_category_table.html', {'categories': categories})
+    return render(request, 'inventory/category_list.html', {'categories': categories, 'query': query})
+
+
+@login_required
+def category_form(request, pk=None):
+    category = get_object_or_404(Category, pk=pk) if pk else None
+    
+    if request.method == 'POST':
+        form = CategoryForm(request.POST, request.FILES, instance=category)
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                _('Catégorie « %(nom)s » enregistrée.') % {'nom': form.instance.nom}
+            )
+            if is_htmx(request):
+                response = render(request, 'inventory/_toast_ok.html', {
+                    'message': _('Catégorie enregistrée.')
+                })
+                response['HX-Trigger'] = 'categorieEnregistree'
+                return response
+            return redirect('inventory:category_list')
+    else:
+        form = CategoryForm(instance=category)
+    
+    contexte = {'form': form, 'category': category}
+    template = 'inventory/_category_form.html' if is_htmx(request) else 'inventory/category_form.html'
+    return render(request, template, contexte)
+
+
+@login_required
+def category_detail(request, pk):
+    category = get_object_or_404(Category, pk=pk)
+    produits = category.produits.all()[:10]
+    return render(request, 'inventory/category_detail.html', {
+        'category': category,
+        'produits': produits
+    })
+
+
+@login_required
+def category_delete(request, pk):
+    category = get_object_or_404(Category, pk=pk)
+    if request.method == 'POST':
+        nom = category.nom
+        category.delete()
+        messages.success(request, _('Catégorie « %(nom)s » supprimée.') % {'nom': nom})
+        if is_htmx(request):
+            return render(request, 'inventory/_toast_ok.html', {
+                'message': _('Catégorie supprimée.')
+            })
+        return redirect('inventory:category_list')
+    return render(request, 'inventory/_confirm_delete.html', {'object': category})

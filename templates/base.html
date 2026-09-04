@@ -31,6 +31,9 @@
             <a href="{% url 'inventory:movement_list' %}" class="nav-link {% if request.resolver_match.url_name == 'movement_list' %}nav-link--active{% endif %}">
                 <span class="nav-icon">⇄</span> {% trans "Mouvements de stock" %}
             </a>
+            <a href="{% url 'orders:pos' %}" class="nav-link {% if request.resolver_match.url_name == 'pos' %}nav-link--active{% endif %}">
+                <span class="nav-icon">🛒</span> {% trans "Espace Vente" %}
+            </a>
             <a href="{% url 'orders:order_list' %}" class="nav-link {% if request.resolver_match.url_name == 'order_list' %}nav-link--active{% endif %}">
                 <span class="nav-icon">▤</span> {% trans "Commandes" %}
             </a>

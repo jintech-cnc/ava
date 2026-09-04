@@ -1,0 +1,77 @@
+{% load i18n static %}
+<div id="pos-receipt" class="pos-receipt" style="display: none;">
+    <div class="pos-receipt__header">
+        <div class="pos-receipt__brand">
+            <span class="brand-mark brand-mark--lg">A</span>
+            <span class="brand-name">Ava</span>
+        </div>
+        <p class="pos-receipt__type">{% trans "FACTURE" %}</p>
+        <p class="pos-receipt__meta">
+            {% trans "Commande #" %}{{ commande.pk }}<br>
+            {{ commande.cree_le|date:"d/m/Y H:i" }}<br>
+            {{ commande.client.nom }}
+        </p>
+    </div>
+    
+    <table class="data-table" style="width: 100%;">
+        <thead>
+            <tr>
+                <th>{% trans "Produit" %}</th>
+                <th class="text-right">{% trans "Qté" %}</th>
+                <th class="text-right">{% trans "Prix" %}</th>
+                <th class="text-right">{% trans "Total" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ligne in commande.lignes.all %}
+            <tr>
+                <td>{{ ligne.produit.nom }}</td>
+                <td class="text-right">{{ ligne.quantite }}</td>
+                <td class="text-right">{{ ligne.prix_unitaire|floatformat:2 }} €</td>
+                <td class="text-right">{{ ligne.sous_total|floatformat:2 }} €</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3" class="text-right"><strong>{% trans "TOTAL" %}</strong></td>
+                <td class="text-right"><strong>{{ commande.montant_total|floatformat:2 }} €</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+    
+    <div class="pos-receipt__footer">
+        <p>{% trans "Merci pour votre achat !" %}</p>
+        <p class="pos-receipt__note">{% trans "Cette facture a été générée automatiquement." %}</p>
+    </div>
+</div>
+
+<script>
+    // Imprimer directement
+    const receipt = document.getElementById('pos-receipt');
+    const win = window.open('', '_blank');
+    win.document.write(`
+        <html>
+        <head>
+            <title>{% trans "Facture" %} #{{ commande.pk }}</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 20px; margin: 0; }
+                .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+                .brand-mark { width: 40px; height: 40px; background: #4f5eff; color: white; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-weight: 800; }
+                table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+                th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+                th { background: #f4f6f9; }
+                .text-right { text-align: right; }
+                .total-row td { font-weight: bold; font-size: 1.1rem; }
+                @media print { body { padding: 0; } }
+            </style>
+        </head>
+        <body>
+            ${receipt.innerHTML}
+        </body>
+        </html>
+    `);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 300);
+</script>

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% block title %}{% trans "Catégories" %}{% endblock %}
+{% block page_title %}{% trans "Catégories" %}{% endblock %}
+{% block content %}
+<div class="panel">
+    <div class="toolbar">
+        <input type="text" class="input input--search" id="search" placeholder='{% trans "Rechercher..." %}' hx-get="{% url 'inventory:category_list' %}" hx-trigger="keyup changed delay:500ms" hx-target="#category-table" hx-include="input">
+        <button class="btn btn--primary" hx-get="{% url 'inventory:category_create' %}" hx-target="#modal-region" hx-swap="innerHTML">
+            {% trans "Ajouter une catégorie" %}
+        </button>
+    </div>
+
+    <div id="category-table">
+        {% include "inventory/_category_table.html" with categories=categories %}
+    </div>
+</div>
+{% endblock %}

@@ -2,20 +2,25 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.translation import gettext as _
+from django.http import JsonResponse
+from django.db.models import Q
+import json
 
 from .models import Order, Requisition, Client, OrderItem
 from .forms import OrderForm, OrderItemFormSet, RequisitionForm, RequisitionItemFormSet
-from inventory.models import Product, Warehouse
+from inventory.models import Product, Warehouse, Category
 
 
 @login_required
 def pos_view(request):
     """Espace de vente quotidien (Point of Sale)."""
-    produits = Product.objects.filter(actif=True)
+    produits = Product.objects.filter(actif=True).select_related('categorie')
+    categories = Category.objects.all()
     clients = Client.objects.all()
     entrepots = Warehouse.objects.all()
     return render(request, 'orders/pos.html', {
         'produits': produits,
+        'categories': categories,
         'clients': clients,
         'entrepots': entrepots,
     })
@@ -61,8 +66,21 @@ def pos_create_order(request):
 
 @login_required
 def order_list(request):
+    query = request.GET.get('q', '').strip()
     commandes = Order.objects.select_related('client', 'entrepot').all()
-    return render(request, 'orders/order_list.html', {'commandes': commandes})
+    
+    if query:
+        commandes = commandes.filter(
+            Q(pk__icontains=query) | 
+            Q(client__nom__icontains=query) |
+            Q(client__email__icontains=query) |
+            Q(entrepot__nom__icontains=query)
+        )
+    
+    return render(request, 'orders/order_list.html', {
+        'commandes': commandes,
+        'query': query
+    })
 
 
 @login_required

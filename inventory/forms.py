@@ -39,10 +39,12 @@ class StockMovementForm(forms.ModelForm):
 class CategoryForm(forms.ModelForm):
     class Meta:
         model = Category
-        fields = ['nom', 'description']
+        fields = ['nom', 'description', 'image', 'is_hero']
         widgets = {
             'nom': forms.TextInput(attrs={'class': 'input'}),
             'description': forms.Textarea(attrs={'class': 'input', 'rows': 2}),
+            'image': forms.FileInput(attrs={'class': 'input'}),
+            'is_hero': forms.CheckboxInput(attrs={'class': 'checkbox'}),
         }
 
 
