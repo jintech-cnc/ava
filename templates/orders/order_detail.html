@@ -3,6 +3,23 @@
 {% block title %}{% trans "Commande" %} #{{ commande.id }}{% endblock %}
 {% block page_title %}{% trans "Commande" %} #{{ commande.id }}{% endblock %}
 {% block content %}
+<div class="toolbar">
+    <a href="{% url 'orders:order_list' %}" class="btn btn--ghost">← {% trans "Retour" %}</a>
+    <div class="export-menu" x-data="{ open: false }">
+        <button class="btn btn--ghost" @click="open = !open">
+            📥 {% trans "Exporter" %} ▾
+        </button>
+        <div class="export-menu__items" x-show="open" @click.outside="open = false" x-transition x-cloak>
+            <a href="{% url 'utils:export_order_pdf' commande.pk %}" class="export-menu__item" target="_blank">
+                📄 {% trans "PDF Facture" %}
+            </a>
+            <a href="{% url 'utils:export_order_excel' commande.pk %}" class="export-menu__item" target="_blank">
+                📊 {% trans "Excel" %}
+            </a>
+        </div>
+    </div>
+</div>
+
 <div class="panel">
     <div class="detail-grid">
         <div><span class="field-label">{% trans "Client" %}</span><p>{{ commande.client.nom }}</p></div>
@@ -43,6 +60,5 @@
             </tr>
         </tfoot>
     </table>
-    <a href="{% url 'orders:order_list' %}" class="btn btn--ghost">{% trans "Retour" %}</a>
 </div>
 {% endblock %}

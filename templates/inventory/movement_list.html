@@ -9,6 +9,19 @@
         hx-target="#modal-region" hx-swap="innerHTML">
         + {% trans "Nouveau mouvement" %}
     </button>
+    <div class="export-menu" x-data="{ open: false }">
+        <button class="btn btn--ghost" @click="open = !open">
+            📥 {% trans "Exporter" %} ▾
+        </button>
+        <div class="export-menu__items" x-show="open" @click.outside="open = false" x-transition x-cloak>
+            <a href="{% url 'utils:export_movements_pdf' %}" class="export-menu__item" target="_blank">
+                📄 {% trans "PDF" %}
+            </a>
+            <a href="{% url 'utils:export_movements_excel' %}" class="export-menu__item" target="_blank">
+                📊 {% trans "Excel" %}
+            </a>
+        </div>
+    </div>
 </div>
 
 <table class="data-table">

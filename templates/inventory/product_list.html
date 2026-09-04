@@ -37,6 +37,19 @@
         hx-swap="innerHTML">
         ⇄ {% trans "Mouvement de stock" %}
     </button>
+    <div class="export-menu" x-data="{ open: false }">
+        <button class="btn btn--ghost" @click="open = !open">
+            📥 {% trans "Exporter" %} ▾
+        </button>
+        <div class="export-menu__items" x-show="open" @click.outside="open = false" x-transition x-cloak>
+            <a href="{% url 'utils:export_products_pdf' %}" class="export-menu__item" target="_blank">
+                📄 {% trans "PDF" %}
+            </a>
+            <a href="{% url 'utils:export_products_excel' %}" class="export-menu__item" target="_blank">
+                📊 {% trans "Excel" %}
+            </a>
+        </div>
+    </div>
 </div>
 
 <div id="product-table-region"

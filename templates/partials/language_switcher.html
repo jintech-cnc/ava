@@ -1,20 +1,52 @@
 {% load i18n %}
+{% get_current_language as CURRENT_LANG %}
 <div class="lang-switcher" x-data="{ open: false }">
     <button type="button" class="nav-link lang-switcher__toggle" @click="open = !open">
-        <span class="nav-icon">🌐</span> {% get_current_language as CURRENT_LANG %}
-        {% for code, name in LANGUAGES %}{% if code == CURRENT_LANG %}{{ name }}{% endif %}{% endfor %}
+        <span class="nav-icon">🌐</span> 
+        <span class="lang-label">
+            {% if CURRENT_LANG == 'fr' %}🇫🇷 Français
+            {% elif CURRENT_LANG == 'en' %}🇬🇧 English
+            {% elif CURRENT_LANG == 'zh-hans' %}🇨🇳 中文
+            {% elif CURRENT_LANG == 'hi' %}🇮🇳 हिन्दी
+            {% else %}{{ CURRENT_LANG }}{% endif %}
+        </span>
     </button>
     <div class="lang-switcher__menu" x-show="open" @click.outside="open = false" x-transition x-cloak>
-        {% get_available_languages as LANGUAGES %}
-        {% for code, name in LANGUAGES %}
-        <form action="{% url 'set_language' %}" method="post" class="lang-switcher__form">
+        <form action="{% url 'set_language' %}" method="post">
             {% csrf_token %}
             <input name="next" type="hidden" value="{{ request.path }}">
-            <input name="language" type="hidden" value="{{ code }}">
-            <button type="submit" class="lang-switcher__item {% if code == CURRENT_LANG %}lang-switcher__item--active{% endif %}">
-                {{ name }}
+            <input name="language" type="hidden" value="fr">
+            <button type="submit" class="lang-switcher__item {% if CURRENT_LANG == 'fr' %}lang-switcher__item--active{% endif %}">
+                🇫🇷 Français
             </button>
         </form>
-        {% endfor %}
+        <form action="{% url 'set_language' %}" method="post">
+            {% csrf_token %}
+            <input name="next" type="hidden" value="{{ request.path }}">
+            <input name="language" type="hidden" value="en">
+            <button type="submit" class="lang-switcher__item {% if CURRENT_LANG == 'en' %}lang-switcher__item--active{% endif %}">
+                🇬🇧 English
+            </button>
+        </form>
+        <form action="{% url 'set_language' %}" method="post">
+            {% csrf_token %}
+            <input name="next" type="hidden" value="{{ request.path }}">
+            <input name="language" type="hidden" value="zh-hans">
+            <button type="submit" class="lang-switcher__item {% if CURRENT_LANG == 'zh-hans' %}lang-switcher__item--active{% endif %}">
+                🇨🇳 中文
+            </button>
+        </form>
+        <form action="{% url 'set_language' %}" method="post">
+            {% csrf_token %}
+            <input name="next" type="hidden" value="{{ request.path }}">
+            <input name="language" type="hidden" value="hi">
+            <button type="submit" class="lang-switcher__item {% if CURRENT_LANG == 'hi' %}lang-switcher__item--active{% endif %}">
+                🇮🇳 हिन्दी
+            </button>
+        </form>
     </div>
 </div>
+
+<style>
+.lang-label { font-size: 0.82rem; }
+</style>
