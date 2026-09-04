@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Importer" %} — {{ model_name }}{% endblock %}
+{% block page_title %}{% trans "Importer des données" %} : {{ model_name }}{% endblock %}
+{% block content %}
+<div class="toolbar">
+    <a href="{% url 'utils:import_dashboard' %}" class="btn btn--ghost">← {% trans "Retour" %}</a>
+    <a href="{% url 'utils:import_instructions' model_name %}" class="btn btn--ghost" target="_blank">
+        📖 {% trans "Instructions" %}
+    </a>
+    <a href="{% url 'utils:import_template' model_name %}" class="btn btn--ghost">
+        📥 {% trans "Télécharger le template" %}
+    </a>
+</div>
+
+<div class="panel panel--form">
+    <h2 class="panel__title">{% trans "Charger un fichier" %}</h2>
+    
+    <form method="post" enctype="multipart/form-data" class="form-grid">
+        {% csrf_token %}
+        
+        <div class="field field--full">
+            <label class="field-label field-label--required" for="id_file">
+                {% trans "Fichier à importer" %} *
+            </label>
+            <input type="file" name="file" id="id_file" class="input" accept=".csv,.xlsx,.xls,.json,.yaml,.yml,.tsv" required>
+            <span class="hint-text">
+                {% trans "Formats acceptés : CSV, XLSX, XLS, JSON, YAML, TSV" %}
+            </span>
+        </div>
+
+        <div class="field field--full">
+            <button type="submit" class="btn btn--primary">
+                {% trans "Importer les données" %}
+            </button>
+        </div>
+    </form>
+</div>
+
+<div class="panel">
+    <h3 class="panel__title">⚠️ {% trans "Conseils importants" %}</h3>
+    <ul style="padding-left: 20px; color: var(--color-text-muted); font-size: 0.9rem; line-height: 1.8;">
+        <li>{% trans "Assurez-vous que les données de référence (catégories, entrepôts) existent avant d'importer les produits." %}</li>
+        <li>{% trans "La première ligne du fichier doit contenir les noms de colonnes." %}</li>
+        <li>{% trans "Pour les champs booléens, utilisez 'true'/'false' ou '1'/'0'." %}</li>
+        <li>{% trans "Si vous importez plusieurs fois, les doublons seront ignorés (sauf pour les produits qui utilisent la référence comme identifiant)." %}</li>
+        <li>{% trans "Faites un test avec quelques lignes d'abord." %}</li>
+    </ul>
+</div>
+{% endblock %}

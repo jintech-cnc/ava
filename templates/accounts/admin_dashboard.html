@@ -66,5 +66,16 @@
             <a href="{% url 'orders:order_list' %}" class="btn btn--primary">{% trans "Voir" %}</a>
         </div>
     </div>
+
+    <div class="admin-card">
+        <div class="admin-card__icon">📥</div>
+        <div class="admin-card__info">
+            <h3>{% trans "Import / Export" %}</h3>
+            <p>{% trans "Importer ou exporter les données." %}</p>
+        </div>
+        <div class="admin-card__actions">
+            <a href="{% url 'utils:import_dashboard' %}" class="btn btn--primary">{% trans "Ouvrir" %}</a>
+        </div>
+    </div>
 </div>
 {% endblock %}

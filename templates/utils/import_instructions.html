@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Instructions d'import" %}{% endblock %}
+{% block page_title %}{% trans "Instructions d'import" %} : {{ model_name }}{% endblock %}
+{% block content %}
+<div class="toolbar">
+    <a href="{% url 'utils:import_data' model_name %}" class="btn btn--ghost">← {% trans "Retour" %}</a>
+    <a href="{% url 'utils:import_template' model_name %}" class="btn btn--primary">
+        📥 {% trans "Télécharger le template" %}
+    </a>
+</div>
+
+<div class="panel">
+    <h2 class="panel__title">{% trans "Colonnes attendues pour" %} : {{ model_name }}</h2>
+    <p class="hint-text">{% trans "Votre fichier doit contenir les colonnes suivantes :" %}</p>
+    
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>{% trans "Colonne" %}</th>
+                <th>{% trans "Description" %}</th>
+                <th>{% trans "Type" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for col_name, col_desc, col_type in columns %}
+            <tr class="data-row">
+                <td><code>{{ col_name }}</code></td>
+                <td>{{ col_desc }}</td>
+                <td>
+                    {% if col_type == 'text' %}<span class="badge">{% trans "Texte" %}</span>
+                    {% elif col_type == 'number' %}<span class="badge badge--entree">{% trans "Nombre" %}</span>
+                    {% elif col_type == 'boolean' %}<span class="badge badge--warn">{% trans "Booléen" %}</span>
+                    {% elif col_type == 'choice' %}<span class="badge badge--confirmee">{% trans "Choix" %}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="panel">
+    <h3 class="panel__title">💡 {% trans "Exemples" %}</h3>
+    <pre style="background: #f9fafc; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 0.85rem;"><code>{% if model_name == 'produits' %}
+reference,nom,description,categorie,unite,prix_unitaire,seuil_alerte,actif
+P001,Cahier A4,Cahier 96 pages, Fournitures,pièce,2.50,10,true
+P002,Stylo bleu,Stylo bille bleu, Fournitures,pièce,0.80,50,true
+{% elif model_name == 'categories' %}
+nom,description,is_hero
+Fournitures,Tout pour l'école,true
+Électronique,Accessoires et gadgets,false
+{% elif model_name == 'clients' %}
+nom,email,telephone,adresse
+Entreprise ABC,contact@abc.com,0123456789,12 rue de la Paix
+{% endif %}</code></pre>
+</div>
+{% endblock %}

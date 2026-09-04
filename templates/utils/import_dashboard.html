@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Importer des données" %}{% endblock %}
+{% block page_title %}{% trans "Importer des données" %}{% endblock %}
+{% block content %}
+<div class="panel">
+    <p class="hint-text">
+        {% trans "Sélectionnez le type de données que vous souhaitez importer. Vous pouvez charger des fichiers CSV, Excel, JSON, YAML ou TSV." %}
+    </p>
+</div>
+
+<div class="admin-grid">
+    <div class="admin-card">
+        <div class="admin-card__icon">📁</div>
+        <div class="admin-card__info">
+            <h3>{% trans "Catégories" %}</h3>
+            <p>{% trans "Importer une liste de catégories de produits." %}</p>
+        </div>
+        <div class="admin-card__actions">
+            <a href="{% url 'utils:import_data' 'categories' %}" class="btn btn--primary">{% trans "Importer" %}</a>
+            <a href="{% url 'utils:import_template' 'categories' %}" class="btn btn--ghost">{% trans "Template" %}</a>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="admin-card__icon">📦</div>
+        <div class="admin-card__info">
+            <h3>{% trans "Produits" %}</h3>
+            <p>{% trans "Importer une liste de produits (catégories doivent exister)." %}</p>
+        </div>
+        <div class="admin-card__actions">
+            <a href="{% url 'utils:import_data' 'produits' %}" class="btn btn--primary">{% trans "Importer" %}</a>
+            <a href="{% url 'utils:import_template' 'produits' %}" class="btn btn--ghost">{% trans "Template" %}</a>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="admin-card__icon">🏢</div>
+        <div class="admin-card__info">
+            <h3>{% trans "Entrepôts" %}</h3>
+            <p>{% trans "Importer une liste d'entrepôts." %}</p>
+        </div>
+        <div class="admin-card__actions">
+            <a href="{% url 'utils:import_data' 'entrepots' %}" class="btn btn--primary">{% trans "Importer" %}</a>
+            <a href="{% url 'utils:import_template' 'entrepots' %}" class="btn btn--ghost">{% trans "Template" %}</a>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="admin-card__icon">🚚</div>
+        <div class="admin-card__info">
+            <h3>{% trans "Fournisseurs" %}</h3>
+            <p>{% trans "Importer une liste de fournisseurs." %}</p>
+        </div>
+        <div class="admin-card__actions">
+            <a href="{% url 'utils:import_data' 'fournisseurs' %}" class="btn btn--primary">{% trans "Importer" %}</a>
+            <a href="{% url 'utils:import_template' 'fournisseurs' %}" class="btn btn--ghost">{% trans "Template" %}</a>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="admin-card__icon">🧑‍💼</div>
+        <div class="admin-card__info">
+            <h3>{% trans "Clients" %}</h3>
+            <p>{% trans "Importer une liste de clients." %}</p>
+        </div>
+        <div class="admin-card__actions">
+            <a href="{% url 'utils:import_data' 'clients' %}" class="btn btn--primary">{% trans "Importer" %}</a>
+            <a href="{% url 'utils:import_template' 'clients' %}" class="btn btn--ghost">{% trans "Template" %}</a>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="admin-card__icon">👥</div>
+        <div class="admin-card__info">
+            <h3>{% trans "Utilisateurs" %}</h3>
+            <p>{% trans "Importer une liste d'utilisateurs (mot de passe par défaut)." %}</p>
+        </div>
+        <div class="admin-card__actions">
+            <a href="{% url 'utils:import_data' 'utilisateurs' %}" class="btn btn--primary">{% trans "Importer" %}</a>
+            <a href="{% url 'utils:import_template' 'utilisateurs' %}" class="btn btn--ghost">{% trans "Template" %}</a>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="admin-card__icon">⇄</div>
+        <div class="admin-card__info">
+            <h3>{% trans "Mouvements de stock" %}</h3>
+            <p>{% trans "Importer un historique de mouvements." %}</p>
+        </div>
+        <div class="admin-card__actions">
+            <a href="{% url 'utils:import_data' 'mouvements' %}" class="btn btn--primary">{% trans "Importer" %}</a>
+            <a href="{% url 'utils:import_template' 'mouvements' %}" class="btn btn--ghost">{% trans "Template" %}</a>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="admin-card__icon">📐</div>
+        <div class="admin-card__info">
+            <h3>{% trans "Règles de réapprovisionnement" %}</h3>
+            <p>{% trans "Importer des règles de stock." %}</p>
+        </div>
+        <div class="admin-card__actions">
+            <a href="{% url 'utils:import_data' 'regles' %}" class="btn btn--primary">{% trans "Importer" %}</a>
+            <a href="{% url 'utils:import_template' 'regles' %}" class="btn btn--ghost">{% trans "Template" %}</a>
+        </div>
+    </div>
+</div>
+
+<div class="panel" style="margin-top: 30px;">
+    <h3 class="panel__title">📚 {% trans "Formats supportés" %}</h3>
+    <ul class="simple-list">
+        <li class="simple-list__item"><strong>CSV</strong> — Comma-Separated Values (Excel, LibreOffice, etc.)</li>
+        <li class="simple-list__item"><strong>XLSX / XLS</strong> — Microsoft Excel</li>
+        <li class="simple-list__item"><strong>JSON</strong> — Format JavaScript Object Notation</li>
+        <li class="simple-list__item"><strong>YAML</strong> — Format YAML</li>
+        <li class="simple-list__item"><strong>TSV</strong> — Tab-Separated Values</li>
+    </ul>
+</div>
+{% endblock %}

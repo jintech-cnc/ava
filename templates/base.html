@@ -43,6 +43,9 @@
             <a href="{% url 'inventory:reorder_dashboard' %}" class="nav-link {% if request.resolver_match.url_name in 'reorder_dashboard,supplier_list,reorder_rule_list,purchase_order_list' %}nav-link--active{% endif %}">
                 <span class="nav-icon">🚚</span> {% trans "Réapprovisionnement" %}
             </a>
+            <a href="{% url 'utils:import_dashboard' %}" class="nav-link {% if request.resolver_match.app_name == 'utils' %}nav-link--active{% endif %}">
+                <span class="nav-icon">📥</span> {% trans "Import/Export" %}
+            </a>
             <a href="{% url 'accounts:admin_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_dashboard' %}nav-link--active{% endif %}">
                 <span class="nav-icon">⚙</span> {% trans "Administration" %}
             </a>
