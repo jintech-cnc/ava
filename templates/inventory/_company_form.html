@@ -1,101 +1,106 @@
 {% load i18n %}
-<form method="post" enctype="multipart/form-data" class="modal-form" hx-post="{% if company %}{% url 'inventory:company_edit' company.pk %}{% else %}{% url 'inventory:company_create' %}{% endif %}" hx-target="#modal-region" hx-swap="innerHTML">
-    {% csrf_token %}
-    <h3 class="modal-title">
-        {% if company %}{% trans "Modifier l'entreprise" %}{% else %}{% trans "Nouvelle entreprise" %}{% endif %}
-    </h3>
+<div class="modal-panel" onclick="event.stopPropagation()">
+    <button type="button" class="modal-panel__close" onclick="document.getElementById('modal-region').innerHTML=''">✕</button>
+    <form method="post" enctype="multipart/form-data" class="modal-form"
+          hx-post="{% if company %}{% url 'inventory:company_edit' company.pk %}{% else %}{% url 'inventory:company_create' %}{% endif %}"
+          hx-target="#modal-region" hx-swap="innerHTML">
+        {% csrf_token %}
+        <h3 class="modal-title">
+            {% if company %}{% trans "Modifier l'entreprise" %}{% else %}{% trans "Nouvelle entreprise" %}{% endif %}
+        </h3>
 
-    {% if form.non_field_errors %}
-    <div class="alert alert--error">{{ form.non_field_errors }}</div>
-    {% endif %}
+        {% if form.non_field_errors %}
+        <div class="alert alert--error">{{ form.non_field_errors }}</div>
+        {% endif %}
 
-    <div class="form-grid">
-        <div class="form-row form-row--full">
-            <label class="form-label">{% trans "Nom de l'entreprise" %} *</label>
-            {{ form.nom }}
-            {{ form.nom.errors }}
+        <div class="form-grid">
+            <div class="form-row form-row--full">
+                <label class="form-label">{% trans "Nom de l'entreprise" %} *</label>
+                {{ form.nom }}
+                {{ form.nom.errors }}
+            </div>
+
+            <div class="form-row form-row--full">
+                <label class="form-label">{% trans "Slogan" %}</label>
+                {{ form.slogan }}
+            </div>
+
+            <div class="form-row form-row--full">
+                <label class="form-label">{% trans "Logo" %}</label>
+                {% if company and company.logo %}
+                    <div class="form-preview">
+                        <img src="{{ company.logo.url }}" alt="logo" class="form-preview__logo">
+                    </div>
+                {% endif %}
+                {{ form.logo }}
+            </div>
+
+            <div class="form-row form-row--full">
+                <label class="form-label">{% trans "Adresse" %}</label>
+                {{ form.adresse }}
+            </div>
+
+            <div class="form-row">
+                <label class="form-label">{% trans "Téléphone" %}</label>
+                {{ form.telephone }}
+            </div>
+            <div class="form-row">
+                <label class="form-label">{% trans "Email" %}</label>
+                {{ form.email }}
+            </div>
+
+            <div class="form-row form-row--full">
+                <label class="form-label">{% trans "Site web" %}</label>
+                {{ form.site_web }}
+            </div>
+
+            <div class="form-row">
+                <label class="form-label">{% trans "RCCM" %}</label>
+                {{ form.rccm }}
+            </div>
+            <div class="form-row">
+                <label class="form-label">{% trans "ID National" %}</label>
+                {{ form.id_national }}
+            </div>
+
+            <div class="form-row">
+                <label class="form-label">{% trans "N° Impôt" %}</label>
+                {{ form.numero_impot }}
+            </div>
+
+            <div class="form-row form-row--section">
+                <h4 class="form-section-title">{% trans "Configuration monétaire" %}</h4>
+            </div>
+
+            <div class="form-row">
+                <label class="form-label">{% trans "Devise" %}</label>
+                {{ form.devise }}
+            </div>
+            <div class="form-row">
+                <label class="form-label">{% trans "Séparateur milliers" %}</label>
+                {{ form.separateur_milliers }}
+            </div>
+            <div class="form-row form-row--full">
+                <label class="form-checkbox">
+                    {{ form.prefixe_symbole }} {% trans "Symbole de devise avant le montant" %}
+                </label>
+            </div>
+
+            <div class="form-row form-row--full">
+                <label class="form-label">{% trans "Mentions en pied de page" %}</label>
+                {{ form.mentions_footer }}
+            </div>
+
+            <div class="form-row form-row--full">
+                <label class="form-checkbox">
+                    {{ form.actif }} {% trans "Entreprise active" %}
+                </label>
+            </div>
         </div>
 
-        <div class="form-row form-row--full">
-            <label class="form-label">{% trans "Slogan" %}</label>
-            {{ form.slogan }}
+        <div class="modal-actions">
+            <button type="button" class="btn btn--ghost" onclick="document.getElementById('modal-region').innerHTML=''">{% trans "Annuler" %}</button>
+            <button type="submit" class="btn btn--primary">{% trans "Enregistrer" %}</button>
         </div>
-
-        <div class="form-row form-row--full">
-            <label class="form-label">{% trans "Logo" %}</label>
-            {% if company and company.logo %}
-                <div class="form-preview">
-                    <img src="{{ company.logo.url }}" alt="logo" class="form-preview__logo">
-                </div>
-            {% endif %}
-            {{ form.logo }}
-        </div>
-
-        <div class="form-row form-row--full">
-            <label class="form-label">{% trans "Adresse" %}</label>
-            {{ form.adresse }}
-        </div>
-
-        <div class="form-row">
-            <label class="form-label">{% trans "Téléphone" %}</label>
-            {{ form.telephone }}
-        </div>
-        <div class="form-row">
-            <label class="form-label">{% trans "Email" %}</label>
-            {{ form.email }}
-        </div>
-
-        <div class="form-row form-row--full">
-            <label class="form-label">{% trans "Site web" %}</label>
-            {{ form.site_web }}
-        </div>
-
-        <div class="form-row">
-            <label class="form-label">{% trans "RCCM" %}</label>
-            {{ form.rccm }}
-        </div>
-        <div class="form-row">
-            <label class="form-label">{% trans "ID National" %}</label>
-            {{ form.id_national }}
-        </div>
-
-        <div class="form-row">
-            <label class="form-label">{% trans "N° Impôt" %}</label>
-            {{ form.numero_impot }}
-        </div>
-
-        <div class="form-row form-row--section">
-            <h4 class="form-section-title">{% trans "Configuration monétaire" %}</h4>
-        </div>
-
-        <div class="form-row">
-            <label class="form-label">{% trans "Devise" %}</label>
-            {{ form.devise }}
-        </div>
-        <div class="form-row">
-            <label class="form-label">{% trans "Séparateur milliers" %}</label>
-            {{ form.separateur_milliers }}
-        </div>
-        <div class="form-row form-row--full">
-            <label class="form-checkbox">
-                {{ form.prefixe_symbole }} {% trans "Symbole de devise avant le montant" %}
-            </label>
-        </div>
-
-        <div class="form-row form-row--full">
-            <label class="form-label">{% trans "Mentions en pied de page" %}</label>
-            {{ form.mentions_footer }}
-        </div>
-
-        <div class="form-row form-row--full">
-            <label class="form-checkbox">
-                {{ form.actif }} {% trans "Entreprise active" %}
-            </label>
-        </div>
-    </div>
-
-    <div class="modal-actions">
-        <button type="button" class="btn btn--ghost" onclick="document.getElementById('modal-region').innerHTML=''">{% trans "Annuler" %}</button>
-        <button type="submit" class="btn btn--primary">{% trans "Enregistrer" %}</button>
-    </div>
-</form>
+    </form>
+</div>
